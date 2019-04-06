@@ -1,0 +1,29 @@
+version: '3'
+services:
+
+  vscsync:
+    image: vscsync:latest 
+    build:
+      context: ./
+      dockerfile: ./vscoffline/vscsync/Dockerfile
+    dns:
+      - 1.1.1.1
+    volumes:
+      #- ./vscoffline/:/opt/vscoffline/:ro
+      - ./artifacts/:/artifacts/
+    environment:
+      - SYNCARGS=--go
+      #- SYNCARGS=--goall
+
+  vscgallery:
+    image: vscgallery:latest
+    build:
+      context: ./
+      dockerfile: ./vscoffline/vscgallery/Dockerfile    
+    volumes:
+      #- ./vscoffline/:/opt/vscoffline/:ro
+      - ./artifacts/:/artifacts/
+    ports:
+      - 443:443
+    environment:
+      - BIND=0.0.0.0:443
