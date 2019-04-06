@@ -2,7 +2,7 @@ version: '3'
 services:
 
   vscsync:
-    image: vscsync:latest 
+    image: lolinternet/vscsync:latest
     build:
       context: ./
       dockerfile: ./vscoffline/vscsync/Dockerfile
@@ -16,7 +16,7 @@ services:
       #- SYNCARGS=--goall
 
   vscgallery:
-    image: vscgallery:latest
+    image: lolinternet/vscgallery:latest
     build:
       context: ./
       dockerfile: ./vscoffline/vscgallery/Dockerfile    
