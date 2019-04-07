@@ -6,7 +6,9 @@ from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 import vsc
 
+
 URLROOT = 'https://update.code.visualstudio.com'
+
 
 class VSCUpdater(object):
 
@@ -215,6 +217,11 @@ class VSCGallery(object):
 
             else:
                 log.warn(f"Undefined filter type {crit}")
+        
+        # Handle popular / recommended
+        if len(result) <= 0 and len(criteria) <= 2:
+            log.info(f'Search criteria {criteria}')
+            result = [ext for ext in self.extensions.values() if 'recommended' in ext and ext['recommended']]
 
         return result
 
@@ -261,7 +268,6 @@ class VSCIndex(object):
             output += f'<a href="{first_file}">{first_file}</a> <br />'
         return output
 
-
 class ArtifactChangedHandler(FileSystemEventHandler):
 
     def __init__(self, gallery):
@@ -271,6 +277,7 @@ class ArtifactChangedHandler(FileSystemEventHandler):
         if 'updated.json' in event.src_path:
             log.info('Detected updated.json change, updating extension gallery')
             self.gallery.update_state()
+
 
 gallery = VSCGallery()
 

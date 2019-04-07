@@ -11,7 +11,5 @@ ENV BIND=0.0.0.0:443
 
 CMD gunicorn  --bind $BIND --chdir /opt/vscoffline/ \
     --certfile=/opt/vscoffline/vscgallery/ssl/vscoffline.crt --keyfile=/opt//vscoffline/vscgallery/ssl/vscoffline.key \
-    --access-logfile - \
+    --access-logfile - --reload \
     server:application
-
-    # --reload

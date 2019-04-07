@@ -3,6 +3,7 @@ from logzero import logger as log
 from pytimeparse.timeparse import timeparse
 import vsc
 
+
 class VSCUpdateDefinition(object):
 
     session = requests.session()
@@ -130,6 +131,7 @@ class VSCExtensionDefinition(object):
     def __init__(self, identity, raw=None):
         self.identity = identity
         self.extensionId = None
+        self.recommended = False
         self.versions = []
         if raw:
             self.__dict__.update(raw)            
@@ -153,6 +155,9 @@ class VSCExtensionDefinition(object):
             log.warning(f"version(). More than one version returned for {self.identity}. Unhandled.")
             return None
         return self.versions[0]['version']
+    
+    def set_recommended(self):
+        self.recommended = True
 
     def _download_asset(self, destination, asset):
         if not self.extensionId:
@@ -233,27 +238,43 @@ class VSCMarketplace(object):
         pass
 
     def get_recommendations(self, destination):
+        recommendations = self.search_top_n(n=200)
+        recommended_old = self.get_recommendations_old(destination)
+
+        for extension in recommendations:
+            # If the extension has already been found then prevent it from being collected again when processing the old recommendation list
+            if extension.identity in recommended_old.keys():                
+                del recommended_old[extension.identity]
+
+        for packagename in recommended_old:
+            extension = self.search_by_extension_name(packagename)
+            if extension:
+                recommendations.append(extension)                
+            else:
+                log.debug(f'get_recommendations failed finding a recommended extension by name for {packagename}. This extension has likely been removed.')
+        
+        for recommendation in recommendations:
+            recommendation.set_recommended()
+
+        return recommendations
+
+    def get_recommendations_old(self, destination):
         result = self.session.get(vsc.URL_RECOMMENDATIONS, allow_redirects=True)
         if result.status_code != 200:            
             log.warning(f"get_recommendations failed accessing url {vsc.URL_RECOMMENDATIONS}, unhandled status code {result.status_code}")
             return False
-        jresult = result.json()
+
+        jresult = result.json()        
         with open(os.path.join(destination, 'recommendations.json'), 'w') as outfile:
             json.dump(jresult, outfile, cls=vsc.MagicJsonEncoder, indent=4)
+
+        # To dict to remove duplicates
         packages = {}
         for recommendation in jresult['workspaceRecommendations']:
             for package in recommendation['recommendations']:
-                packages[package] = {'recommended': True}
-
-        #log.debug(f'get_recommendations() complete. Mapping to extensions')
-        recommendations = []
-        for packagename in packages:
-            extension = self.search_by_extension_name(packagename)
-            if extension:
-                recommendations.append(extension)
-            else:
-                log.debug(f'get_recommendations failed finding a recommended extension by name for {packagename}. This extension has likely been removed.')
-        return recommendations
+                packages[package] = None
+        
+        return packages
 
     def get_malicious(self, destination, extensions=None):
         result = self.session.get(vsc.URL_MALICIOUS, allow_redirects=True)
@@ -303,6 +324,9 @@ class VSCMarketplace(object):
             searchtext = ''
 
         return self._query_marketplace(vsc.FilterType.SearchText, searchtext)
+    
+    def search_top_n(self, n=200):
+        return self._query_marketplace(vsc.FilterType.SearchText, '', limit=n, sortOrder=vsc.SortOrder.InstallCount, sortBy=vsc.SortBy.Descending)
 
     def search_by_extension_id(self, extensionid):
         result = self._query_marketplace(vsc.FilterType.ExtensionId, extensionid)
@@ -320,7 +344,7 @@ class VSCMarketplace(object):
             #log.debug(f"search_by_extension_name failed {extensionname} got {result}")
             return False
 
-    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500):
+    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.NoneOrRelevance, sortBy=vsc.SortBy.Default):
         extensions = {}
         total = 0
         count = 0
@@ -341,7 +365,9 @@ class VSCMarketplace(object):
                     if 'resultMetadata' in jres:
                         for resmd in jres['resultMetadata']:                        
                             if 'ResultCount' in resmd['metadataType']:
-                                total = resmd['metadataItems'][0]['count']                
+                                total = resmd['metadataItems'][0]['count']
+            if limit > 0 and count > limit:
+                break
 
         return list(extensions.values())
 

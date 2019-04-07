@@ -9,11 +9,11 @@ services:
     dns:
       - 1.1.1.1
     volumes:
-      #- ./vscoffline/:/opt/vscoffline/:ro
+      #- ./vscoffline/:/opt/vscoffline/:ro # Enable for dev
       - ./artifacts/:/artifacts/
     environment:
       - SYNCARGS=--go
-      #- SYNCARGS=--goall
+      #- SYNCARGS=--goall # Enable to get all extensions
 
   vscgallery:
     image: lolinternet/vscgallery:latest
@@ -21,8 +21,9 @@ services:
       context: ./
       dockerfile: ./vscoffline/vscgallery/Dockerfile    
     volumes:
-      #- ./vscoffline/:/opt/vscoffline/:ro
+      #- ./vscoffline/:/opt/vscoffline/:ro # Enable for dev
       - ./artifacts/:/artifacts/
+      #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs
     ports:
       - 443:443
     environment:
