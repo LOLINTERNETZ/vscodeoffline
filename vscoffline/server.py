@@ -96,10 +96,12 @@ class VSCGallery(object):
 
             # Repoint asset urls
             asseturi = URLROOT + os.path.join(extensiondir, latest['versions'][0]['version'])
-            latest['versions'][0]['assetUri'] = asseturi           
+
+            latest['versions'][0]['assetUri'] = asseturi
+            latest['versions'][0]['fallbackAssetUri'] = asseturi            
             for asset in latest['versions'][0]['files']:
-                asset['source'] = asseturi + '/' + asset['assetType']
-            #log.info(asset)
+                asset['source'] = asseturi + '/' + asset['assetType']   
+
             name = latest['identity']
 
             # Map statistics for later lookup
