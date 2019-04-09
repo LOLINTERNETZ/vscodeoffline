@@ -292,7 +292,7 @@ class VSCMarketplace(object):
         
         for malicious in jresult['malicious']:
             log.debug(f'Malicious extension {malicious}')
-            if malicious in extensions:
+            if malicious in extensions.keys():
                 log.warn(f'Preventing malicious extension {malicious} from being downloaded')
                 del extensions[malicious]
 
@@ -474,8 +474,8 @@ if __name__ == '__main__':
         config.frequency = timeparse(config.frequency)
     
     while True:        
-        extensions = []
         versions = []
+        extensions = {}
         mp = VSCMarketplace()
 
         if config.checkbinaries:
@@ -488,13 +488,6 @@ if __name__ == '__main__':
                 if versions[idkey].updateurl:
                     result = versions[idkey].download_update(config.artifactdir_installers)
                     versions[idkey].save_state(config.artifactdir_installers)
-
-        if config.checkextensions:
-            log.info('Syncing VS Code Recommended Extensions')            
-            recommended = mp.get_recommendations(os.path.abspath(config.artifactdir))
-            for item in recommended:
-                log.info(item)
-            extensions.extend(recommended)
         
         if config.checkspecified:
             log.info('Syncing VS Code Specified Extensions')
@@ -503,7 +496,7 @@ if __name__ == '__main__':
             if specified:
                 for item in specified:
                     log.info(item)
-                extensions.extend(specified)
+                    extensions[item.identity] = item
 
         if config.extensionsearch:
             log.info(f'Searching for VS Code Extension: {config.extensionsearch}')
@@ -511,23 +504,35 @@ if __name__ == '__main__':
             log.info(f'Found {len(results)} extensions')
             for item in results:
                 log.info(item)
-            extensions.extend(results)
+                extensions[item.identity] = item
 
         if config.extensionname:
             log.info(f'Checking Specific VS Code Extension: {config.extensionname}')
             result = mp.search_by_extension_name(config.extensionname)
             if result:
-                extensions.append(result)
+                log.info(result)
+                extensions[result.identity] = result
+        
+        if config.checkextensions:
+            log.info('Syncing VS Code Recommended Extensions')            
+            recommended = mp.get_recommendations(os.path.abspath(config.artifactdir))
+            for item in recommended:
+                log.info(item)
+                extensions[item.identity] = item
         
         if config.updatemalicious:
             log.info('Syncing VS Code Malicious Extension List')
             malicious = mp.get_malicious(os.path.abspath(config.artifactdir), extensions)
 
         if config.updateextensions:
-            log.info(f'Checking for Updates to {len(extensions)} VS Code Extensions')
-            for extension in extensions:
-                extension.download_assets(config.artifactdir_extensions)
-                extension.save_state(config.artifactdir_extensions)
+            log.info(f'Checking and Downloading Updates for {len(extensions)} Extensions')
+            count = 0
+            for identity in extensions:
+                if count % 100 == 0:
+                    log.info(f'Progress {count}/{len(extensions)} ({count/len(extensions)*100:.1f}%)')
+                extensions[identity].download_assets(config.artifactdir_extensions)
+                extensions[identity].save_state(config.artifactdir_extensions)
+                count = count + 1
                 
         log.info('Complete')
         VSCUpdates.signal_updated(os.path.abspath(config.artifactdir))

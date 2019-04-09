@@ -106,19 +106,22 @@ class VSCGallery(object):
             name = latest['identity']
 
             # Map statistics for later lookup
+            if 'statistics' not in latest or not latest['statistics']:
+                log.info(f'Ignoring extension {name} as its statistics are missing. {extensiondir}.')
+
             statistics = {}
             for statistic in latest['statistics']:
                 statistics[statistic['statisticName']] = statistic['value']
             latest['stats'] = statistics
 
             self.extensions[name] = latest
-        log.info(f'Loaded {len(self.extensions)} extensions.')
+        log.info(f'Loaded {len(self.extensions)} extensions')
         self.vscindex.update_state()
 
     def update_state_loop(self):
         while True:
             self.update_state()
-            log.info(f'Checking for updates in {vsc.Utility.seconds_to_human_time(self.interval)}.')
+            log.info(f'Checking for updates in {vsc.Utility.seconds_to_human_time(self.interval)}')
             time.sleep(self.interval)
 
     def on_post(self, req, resp):
@@ -254,9 +257,8 @@ class VSCGallery(object):
 class VSCIndex(object):
 
     def __init__(self):
-        self.cache_binaries = None
-        self.cache_extensions = None
-        self.update_state()
+        self.cache_binaries = "Loading..."
+        self.cache_extensions = "Loading..."
 
     def on_get(self, req, resp):        
         resp.content_type = 'text/html'
@@ -267,7 +269,7 @@ class VSCIndex(object):
         resp.status = falcon.HTTP_200
 
     def update_state(self):
-        log.info(f'Updating index cache.')
+        log.info(f'Updating index cache')
         self.cache_binaries = self.simple_binary_list('/artifacts/installers/*/*/*')
         self.cache_extensions = self.simple_binary_list('/artifacts/extensions/*/*/*VSIXPackage')
 
