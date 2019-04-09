@@ -72,11 +72,12 @@ class VSCMalicious(object):
 
 class VSCGallery(object):
 
-    def __init__(self, interval=600):
+    def __init__(self, vscindex, interval=600):
         self.home = '/artifacts/extensions'
         if not os.path.exists(self.home):
             log.warn(f'Extensions artifact directory does not exist at {self.home}')
         self.extensions = {}
+        self.vscindex = vscindex
         self.interval = interval
         self.update_worker = threading.Thread(target=self.update_state_loop, args=())
         self.update_worker.daemon = True
@@ -112,6 +113,7 @@ class VSCGallery(object):
 
             self.extensions[name] = latest
         log.info(f'Loaded {len(self.extensions)} extensions.')
+        self.vscindex.update_state()
 
     def update_state_loop(self):
         while True:
@@ -193,7 +195,7 @@ class VSCGallery(object):
             elif ft == vsc.FilterType.ExtensionName:                
                 for name in self.extensions:
                     if name.lower() == val:
-                        result.append(self.extensions[name])    
+                        result.append(self.extensions[name])
 
             elif ft == vsc.FilterType.Target:
                 # Ignore the product, typically Visual Studio Code. If it's custom, then let it connect here
@@ -208,9 +210,9 @@ class VSCGallery(object):
                     # Search in extension name, display name and short description
                     if val in name.lower():                    
                         result.append(self.extensions[name])
-                    elif val in self.extensions[name]['displayName'].lower():
+                    elif 'displayName' in self.extensions[name] and val in self.extensions[name]['displayName'].lower():
                         result.append(self.extensions[name])
-                    elif val in self.extensions[name]['shortDescription'].lower():
+                    elif 'shortDescription' in self.extensions[name] and val in self.extensions[name]['shortDescription'].lower():
                         result.append(self.extensions[name])
 
             elif ft == vsc.FilterType.ExcludeWithFlags:
@@ -251,16 +253,26 @@ class VSCGallery(object):
 
 class VSCIndex(object):
 
+    def __init__(self):
+        self.cache_binaries = None
+        self.cache_extensions = None
+        self.update_state()
+
     def on_get(self, req, resp):        
         resp.content_type = 'text/html'
         with open('/opt/vscoffline/vscgallery/content/index.html', 'r') as f:
             resp.body = f.read()
-        # Hacky af
-        resp.body = resp.body.replace('{binaries}', self.simple_binary_list('/artifacts/installers/*/*/*'))
-        resp.body = resp.body.replace('{extensions}', self.simple_binary_list('/artifacts/extensions/*/*/*VSIXPackage'))
+        resp.body = resp.body.replace('{binaries}', self.cache_binaries)
+        resp.body = resp.body.replace('{extensions}', self.cache_extensions)
         resp.status = falcon.HTTP_200
 
+    def update_state(self):
+        log.info(f'Updating index cache.')
+        self.cache_binaries = self.simple_binary_list('/artifacts/installers/*/*/*')
+        self.cache_extensions = self.simple_binary_list('/artifacts/extensions/*/*/*VSIXPackage')
+
     def simple_binary_list(self, path):
+        # Hacky af. Should add proper directory browsing support
         output = ""
         files = vsc.Utility.files_in_folder(path, False)
         for f in files:
@@ -280,20 +292,20 @@ class ArtifactChangedHandler(FileSystemEventHandler):
             log.info('Detected updated.json change, updating extension gallery')
             self.gallery.update_state()
 
-
-gallery = VSCGallery()
+vscindex = VSCIndex()
+vscgallery = VSCGallery(vscindex)
 
 observer = PollingObserver()
-observer.schedule(ArtifactChangedHandler(gallery), '/artifacts/', recursive=False)
+observer.schedule(ArtifactChangedHandler(vscgallery), '/artifacts/', recursive=False)
 observer.start()
 
 application = falcon.API()
 application.add_route('/api/update/{platform}/{buildquality}/{commitid}', VSCUpdater())
 application.add_route('/extensions/workspaceRecommendations.json.gz', VSCRecommendations()) # Why no compress??
 application.add_route('/extensions/marketplace.json', VSCMalicious())
-application.add_route('/_apis/public/gallery/extensionquery', gallery)
+application.add_route('/_apis/public/gallery/extensionquery', vscgallery)
 application.add_static_route('/artifacts/', '/artifacts/')
-application.add_route('/', VSCIndex())
+application.add_route('/', vscindex)
 
 if __name__ == '__main__':
     httpd = simple_server.make_server('0.0.0.0', 5000, application)
