@@ -108,6 +108,7 @@ class VSCGallery(object):
             # Map statistics for later lookup
             if 'statistics' not in latest or not latest['statistics']:
                 log.info(f'Ignoring extension {name} as its statistics are missing. {extensiondir}.')
+                continue
 
             statistics = {}
             for statistic in latest['statistics']:
