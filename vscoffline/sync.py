@@ -50,6 +50,7 @@ class VSCUpdateDefinition(object):
             old_commit_id = '7c4205b5c6e52a53b81c69d2b2dc8a627abaa0ba' # To trigger the API to delta
 
         url = vsc.URL_BINUPDATES + f"{self.identity}/{self.quality}/{old_commit_id}"
+        
         log.debug(f'Update url {url}')
         result = self.session.get(url, allow_redirects=True)
         self.checkedForUpdate = True
@@ -117,7 +118,7 @@ class VSCUpdateDefinition(object):
             json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
 
     def __repr__(self):
-        strs = f"<{self.__class__.__name__}> Target: {self.identity} "        
+        strs = f"<{self.__class__.__name__}> Target: {self.identity} Quality:{self.quality} "        
         if self.updateurl:
             strs += f"Update available: {self.name} Build: {self.version}"
         elif self.checkedForUpdate:
@@ -141,7 +142,24 @@ class VSCExtensionDefinition(object):
     def download_assets(self, destination):
         availableassets = self._get_asset_types()
         for availableasset in availableassets:
-            self._download_asset(destination, availableasset)   
+            self._download_asset(destination, availableasset)        
+
+    def process_embedded_extensions(self, destination, mp):
+        """
+        Check an extension's Manifest for an extension pack (e.g. more extensions to download)
+        """
+        bonusextensions = []
+        manifestpath = os.path.join(destination, self.identity, self.version(), 'Microsoft.VisualStudio.Code.Manifest')
+        if not os.path.exists(manifestpath):
+            return []
+        with open(manifestpath, 'r') as fp:
+            manifest = json.load(fp)
+            if manifest and 'extensionPack' in manifest:
+                for extname in manifest['extensionPack']:
+                    bonusextension = mp.search_by_extension_name(extname)                    
+                    if bonusextension:
+                        bonusextensions.append(bonusextension)
+        return bonusextensions
 
     def save_state(self, destination):
         destination = os.path.join(destination, self.identity)
@@ -203,12 +221,14 @@ class VSCExtensionDefinition(object):
 class VSCUpdates(object):
 
     @staticmethod
-    def latest_versions():
+    def latest_versions(insider=False):
         versions = {}
         for platform in vsc.PLATFORMS:
                 for architecture in vsc.ARCHITECTURES:
                     for buildtype in vsc.BUILDTYPES:
                         for quality in vsc.QUALITIES:
+                            if quality == 'insider' and not insider:
+                                continue
                             if platform == 'win32' and architecture == 'ia32':
                                 continue
                             if platform == 'darwin' and (architecture != '' or buildtype != ''):
@@ -234,8 +254,8 @@ class VSCMarketplace(object):
    
     session = requests.session()
 
-    def __init__(self):
-        pass
+    def __init__(self, insider):
+        self.insider = insider
 
     def get_recommendations(self, destination):
         recommendations = self.search_top_n(n=200)
@@ -409,12 +429,16 @@ class VSCMarketplace(object):
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
 
     def _headers(self, version='1.32.3'):
+        if self.insider:
+            insider = '-insider'
+        else:
+            insider = ''
         return {
             'content-type': 'application/json',
             'accept': 'application/json;api-version=3.0-preview.1',
             'accept-encoding': 'gzip, deflate, br',
-            'User-Agent': f'VSCode {version}',
-            'x-market-client-Id': f'VSCode {version}',            
+            'User-Agent': f'VSCode {version}{insider}',
+            'x-market-client-Id': f'VSCode {version}{insider}',            
             'x-market-user-Id': str(uuid.uuid4())
         }
 
@@ -432,6 +456,7 @@ if __name__ == '__main__':
 
     # Arguments to tweak behaviour
     parser.add_argument('--check-binaries', dest='checkbinaries', action='store_true', help='Check for updated binaries')
+    parser.add_argument('--check-insider', dest='checkinsider', action='store_true', help='Check for updated insider binaries')
     parser.add_argument('--check-recommended-extensions', dest='checkextensions', action='store_true', help='Check for recommended extensions')
     parser.add_argument('--check-specified-extensions', dest='checkspecified', action='store_true', help='Check for extensions in <artifacts>/specified.json')    
     parser.add_argument('--extension-name', dest='extensionname', help='Find a specific extension by name')
@@ -462,6 +487,7 @@ if __name__ == '__main__':
     
     if config.powerdefaults:
         config.extensionsearch = '*'
+        config.checkinsider = True
 
     if config.artifactdir and config.updatebinaries:
         if not os.path.isdir(config.artifactdir):            
@@ -476,11 +502,11 @@ if __name__ == '__main__':
     while True:        
         versions = []
         extensions = {}
-        mp = VSCMarketplace()
+        mp = VSCMarketplace(config.checkinsider)
 
         if config.checkbinaries:
             log.info('Syncing VS Code Versions')
-            versions = VSCUpdates.latest_versions()
+            versions = VSCUpdates.latest_versions(config.checkinsider)
 
         if config.updatebinaries:
             log.info('Syncing VS Code Binaries')
@@ -500,7 +526,7 @@ if __name__ == '__main__':
 
         if config.extensionsearch:
             log.info(f'Searching for VS Code Extension: {config.extensionsearch}')
-            results = mp.search_by_text(config.extensionsearch)
+            results = mp.search_by_text(config.extensionsearch, insider=config.checkinsider)
             log.info(f'Found {len(results)} extensions')
             for item in results:
                 log.info(item)
@@ -527,12 +553,19 @@ if __name__ == '__main__':
         if config.updateextensions:
             log.info(f'Checking and Downloading Updates for {len(extensions)} Extensions')
             count = 0
+            bonus = []
             for identity in extensions:
                 if count % 100 == 0:
                     log.info(f'Progress {count}/{len(extensions)} ({count/len(extensions)*100:.1f}%)')
                 extensions[identity].download_assets(config.artifactdir_extensions)
+                bonus = extensions[identity].process_embedded_extensions(config.artifactdir_extensions, mp) + bonus
                 extensions[identity].save_state(config.artifactdir_extensions)
                 count = count + 1
+
+            for bonusextension in bonus:
+                log.info(f'Processing Embedded Extension: {bonusextension}')
+                bonusextension.download_assets(config.artifactdir_extensions)                
+                bonusextension.save_state(config.artifactdir_extensions)
                 
         log.info('Complete')
         VSCUpdates.signal_updated(os.path.abspath(config.artifactdir))

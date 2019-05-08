@@ -8,7 +8,7 @@ In effect, content is served through expected interfaces, without changing any o
 ## Features
 
 On the Internet connected system , **vscsync** will:
-* Mirror the VS Code installer/update binaries across platforms (Windows|Linux|Darwin);
+* Mirror the VS Code installer/update binaries across platforms (Windows|Linux|Darwin) and builds (stable|insider);
 * Mirror recommended/typical extensions from the marketplace;
 * Mirror the malicious extension list; 
 * Mirror a list of manually specified extensions (artifacts/specified.json); and
@@ -25,6 +25,9 @@ Possible ToDo List:
 * vscgallery - Support paging, if it's really needed (who searches 1000s of extensions anyway).
 * Investigate some form of dependency handling (if possible).
 * Investigate support for multiple versions of extensions.
+
+## Changelog
+1.0.8 - Added insiders support and support for extension packs.
 
 ## Requirements
 

@@ -9,7 +9,7 @@ URL_MALICIOUS = r'https://az764295.vo.msecnd.net/extensions/marketplace.json'
 PLATFORMS = ['win32', 'linux', 'linux-deb', 'linux-rpm', 'darwin', 'linux-snap']
 ARCHITECTURES = ['', 'x64', 'ia32']
 BUILDTYPES = ['', 'archive', 'user']
-QUALITIES = ['stable']
+QUALITIES = ['stable', 'insider']
 
 class QueryFlags(IntFlag):
     __no_flags_name__ = 'NoneDefined'
