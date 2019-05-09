@@ -526,7 +526,7 @@ if __name__ == '__main__':
 
         if config.extensionsearch:
             log.info(f'Searching for VS Code Extension: {config.extensionsearch}')
-            results = mp.search_by_text(config.extensionsearch, insider=config.checkinsider)
+            results = mp.search_by_text(config.extensionsearch)
             log.info(f'Found {len(results)} extensions')
             for item in results:
                 log.info(item)
