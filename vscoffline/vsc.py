@@ -1,15 +1,24 @@
-import json, hashlib, glob, datetime
+import os, io, json, hashlib, glob, datetime
 from enum import IntFlag
 from logzero import logger as log
+
+PLATFORMS = ['win32', 'linux', 'linux-deb', 'linux-rpm', 'darwin', 'linux-snap', 'server-linux']
+ARCHITECTURES = ['', 'x64', 'ia32']
+BUILDTYPES = ['', 'archive', 'user']
+QUALITIES = ['stable', 'insider']
 
 URL_BINUPDATES = r'https://update.code.visualstudio.com/api/update/'
 URL_RECOMMENDATIONS = r'https://az764295.vo.msecnd.net/extensions/workspaceRecommendations.json.gz'
 URL_MARKETPLACEQUERY = r'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery'
 URL_MALICIOUS = r'https://az764295.vo.msecnd.net/extensions/marketplace.json'
-PLATFORMS = ['win32', 'linux', 'linux-deb', 'linux-rpm', 'darwin', 'linux-snap']
-ARCHITECTURES = ['', 'x64', 'ia32']
-BUILDTYPES = ['', 'archive', 'user']
-QUALITIES = ['stable', 'insider']
+
+URLROOT = 'https://update.code.visualstudio.com'
+ARTIFACTS = '/artifacts/'
+ARTIFACTS_INSTALLERS = '/artifacts/installers'
+ARTIFACTS_EXTENSIONS = '/artifacts/extensions'
+ARTIFACT_RECOMMENDATION = '/artifacts/recommendations.json'
+ARTIFACT_MALICIOUS = '/artifacts/malicious.json'
+
 
 class QueryFlags(IntFlag):
     __no_flags_name__ = 'NoneDefined'
@@ -61,9 +70,15 @@ class MagicJsonEncoder(json.JSONEncoder):
         return o.__dict__
 
 class Utility(object):
+    """
+    Utility tool
+    """
 
     @staticmethod
     def hash_file_and_check(filepath, expectedchecksum):
+        """
+        Hashes a file and checks for the expected checksum
+        """
         h = hashlib.sha256()
         with open(filepath, 'rb') as f:
             for chunk in iter(lambda: f.read(4096), b''):
@@ -72,6 +87,27 @@ class Utility(object):
             return False
         
         return True
+    
+    @staticmethod
+    def load_json(filepath):
+        result = []
+        if not os.path.exists(filepath):
+            log.debug(f'Unable to load json from {filepath}')
+            return []
+        with io.open(filepath, 'r', encoding='utf-8-sig') as fp:
+            try:
+                result = json.load(fp)
+                if not result:
+                    return []
+            except json.decoder.JSONDecodeError:
+                log.debug(f'JSONDecodeError while processing {filepath}')
+                return []
+        return result
+    
+    @staticmethod
+    def write_json(filepath, content):
+        with open(filepath, 'w') as outfile:
+            json.dump(content, outfile, cls=MagicJsonEncoder, indent=4)
 
     @staticmethod
     def first_file(filepath, reverse=False):
@@ -84,8 +120,12 @@ class Utility(object):
         return False
 
     @staticmethod
-    def files_in_folder(filepath, recursive=False):
-        return glob.glob(filepath)
+    def folders_in_folder(filepath):
+        return [f for f in os.listdir(filepath) if os.path.isdir(os.path.join(filepath, f))]
+
+    @staticmethod
+    def files_in_folder(filepath):
+        return [f for f in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, f))]
 
     @staticmethod
     def seconds_to_human_time(seconds):

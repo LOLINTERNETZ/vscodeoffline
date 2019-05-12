@@ -114,8 +114,11 @@ class VSCUpdateDefinition(object):
         destination = os.path.join(destination, self.identity)
         if not os.path.isdir(destination):
             os.makedirs(destination)
-        with open(os.path.join(destination, self.quality, 'latest.json'), 'w') as outfile:
-            json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
+        # Write version details blob as latest
+        vsc.Utility.write_json(os.path.join(destination, self.quality, 'latest.json'), self)
+        # Write version details blob as the commit id
+        if self.version:
+            vsc.Utility.write_json(os.path.join(destination, self.quality, f'{self.version}.json'), self)
 
     def __repr__(self):
         strs = f"<{self.__class__.__name__}> Target: {self.identity} Quality:{self.quality} "        
@@ -150,15 +153,12 @@ class VSCExtensionDefinition(object):
         """
         bonusextensions = []
         manifestpath = os.path.join(destination, self.identity, self.version(), 'Microsoft.VisualStudio.Code.Manifest')
-        if not os.path.exists(manifestpath):
-            return []
-        with open(manifestpath, 'r') as fp:
-            manifest = json.load(fp)
-            if manifest and 'extensionPack' in manifest:
-                for extname in manifest['extensionPack']:
-                    bonusextension = mp.search_by_extension_name(extname)                    
-                    if bonusextension:
-                        bonusextensions.append(bonusextension)
+        manifest = vsc.Utility.load_json(manifestpath)    
+        if manifest and 'extensionPack' in manifest:
+            for extname in manifest['extensionPack']:
+                bonusextension = mp.search_by_extension_name(extname)                    
+                if bonusextension:
+                    bonusextensions.append(bonusextension)
         return bonusextensions
 
     def save_state(self, destination):
@@ -313,7 +313,7 @@ class VSCMarketplace(object):
         for malicious in jresult['malicious']:
             log.debug(f'Malicious extension {malicious}')
             if malicious in extensions.keys():
-                log.warn(f'Preventing malicious extension {malicious} from being downloaded')
+                log.warning(f'Preventing malicious extension {malicious} from being downloaded')
                 del extensions[malicious]
 
     def get_specified(self, specifiedpath):
@@ -428,7 +428,7 @@ class VSCMarketplace(object):
         return vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
 
-    def _headers(self, version='1.32.3'):
+    def _headers(self, version='1.34.0'):
         if self.insider:
             insider = '-insider'
         else:
@@ -448,10 +448,10 @@ class VSCMarketplace(object):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Updates VSCode Offline Repositories')
-    parser.add_argument('--go', dest='standarddefaults', action='store_true', help='The standard way to run this thing. It will get binaries and typical extensions')
-    parser.add_argument('--goall', dest='powerdefaults', action='store_true', help='The power-user way to run this thing. It will get binaries and all extensions')
-    parser.add_argument('--artifacts', dest='artifactdir', default='../artifacts/', help='Where the downloaded artifacts are stored')
+    parser = argparse.ArgumentParser(description='Synchronises VSCode in an Offline Environment')
+    parser.add_argument('--sync', dest='sync', action='store_true', help='The basic-user sync. It includes stable binaries and typical extensions')
+    parser.add_argument('--syncall', dest='syncall', action='store_true', help='The power-user sync. It includes all binaries and extensions ')
+    parser.add_argument('--artifacts', dest='artifactdir', default='../artifacts/', help='Path to downloaded artifacts')
     parser.add_argument('--frequency', dest='frequency', default=None, help='The frequency to try and update (e.g. sleep for \'12h\' and try again')    
 
     # Arguments to tweak behaviour
@@ -464,6 +464,7 @@ if __name__ == '__main__':
     parser.add_argument('--update-binaries', dest='updatebinaries', action='store_true', help='Download binaries')
     parser.add_argument('--update-extensions', dest='updateextensions', action='store_true', help='Download extensions')
     parser.add_argument('--update-malicious-extensions', dest='updatemalicious', action='store_true', help='Update the malicious extension list')
+    parser.add_argument('--skip-binaries', dest='skipbinaries', action='store_true', help='Skip downloading binaries')
     parser.add_argument('--debug', dest='debug', action='store_true', help='Show debug output')
     config = parser.parse_args()
     
@@ -475,7 +476,7 @@ if __name__ == '__main__':
     config.artifactdir_installers = os.path.join(os.path.abspath(config.artifactdir), 'installers')
     config.artifactdir_extensions = os.path.join(os.path.abspath(config.artifactdir), 'extensions')
 
-    if config.standarddefaults:
+    if config.sync or config.syncall:
         config.checkbinaries = True
         config.checkextensions = True
         config.updatebinaries = True
@@ -485,7 +486,7 @@ if __name__ == '__main__':
         if not config.frequency:
             config.frequency = '12h'
     
-    if config.powerdefaults:
+    if config.syncall:
         config.extensionsearch = '*'
         config.checkinsider = True
 
@@ -504,11 +505,11 @@ if __name__ == '__main__':
         extensions = {}
         mp = VSCMarketplace(config.checkinsider)
 
-        if config.checkbinaries:
+        if config.checkbinaries and not config.skipbinaries:
             log.info('Syncing VS Code Versions')
             versions = VSCUpdates.latest_versions(config.checkinsider)
 
-        if config.updatebinaries:
+        if config.updatebinaries and not config.skipbinaries:
             log.info('Syncing VS Code Binaries')
             for idkey in versions:
                 if versions[idkey].updateurl:

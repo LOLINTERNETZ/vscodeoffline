@@ -7,7 +7,7 @@ RUN mkdir /artifacts/
 RUN pip install --no-cache-dir -r /opt/vscoffline/vscsync/requirements.txt
 
 ENV ARTIFACTS=/artifacts
-ENV SYNCARGS=--go
+ENV SYNCARGS=--sync
 
 CMD python3 /opt/vscoffline/sync.py --artifacts $ARTIFACTS $SYNCARGS
 

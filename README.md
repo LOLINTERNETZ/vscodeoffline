@@ -12,7 +12,7 @@ On the Internet connected system , **vscsync** will:
 * Mirror recommended/typical extensions from the marketplace;
 * Mirror the malicious extension list; 
 * Mirror a list of manually specified extensions (artifacts/specified.json); and
-* Optionally, mirror all extensions (--goall, rather than the default of --go).
+* Optionally, mirror all extensions (--syncall, rather than the default of --sync).
 
 On the non-Internet connected system, **vscgallery**:
 * Implements the updater interface to enable offline updating;
@@ -21,12 +21,14 @@ On the non-Internet connected system, **vscgallery**:
 * Supports extension search (name, author and short description) and sorting; and
 * Supports custom/private extensions (follow the structure of a mirrored extension).
 
-Possible ToDo List:
+Possible Todo List:
 * vscgallery - Support paging, if it's really needed (who searches 1000s of extensions anyway).
 * Investigate some form of dependency handling (if possible).
 * Investigate support for multiple versions of extensions.
+* Add test cases.
 
 ## Changelog
+1.0.9 - Added support for Remote Development, currently (2019-05-12) available to insiders. Refactored various badness.
 1.0.8 - Added insiders support and support for extension packs.
 
 ## Requirements

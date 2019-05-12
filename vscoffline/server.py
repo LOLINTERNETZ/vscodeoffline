@@ -1,33 +1,26 @@
-import os, time, json, glob, threading
+import os, sys, time, json, glob
 import falcon
 from logzero import logger as log
 from wsgiref import simple_server
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
+from threading import Event, Thread
 import vsc
-
-
-URLROOT = 'https://update.code.visualstudio.com'
 
 
 class VSCUpdater(object):
 
-    def __init__(self):
-        self.home = '/artifacts/installers'
-        if not os.path.exists(self.home):
-            log.warn(f'Installers artifact directory missing {self.home}')
-
     def on_get(self, req, resp, platform, buildquality, commitid):
-        updatedir = os.path.join(self.home, platform, buildquality)
+        updatedir = os.path.join(vsc.ARTIFACTS_INSTALLERS, platform, buildquality)
         if not os.path.exists(updatedir):
-            log.warn(f'Update directory does not exist at {updatedir}')
+            log.warning(f'Update build directory does not exist at {updatedir}. Check sync or sync configuration.')
             resp.status = falcon.HTTP_500
             return
-        with open(os.path.join(updatedir, 'latest.json')) as fp:
-            latest = json.load(fp)
+        latestpath = os.path.join(updatedir, 'latest.json')
+        latest = vsc.Utility.load_json(latestpath)        
         if not latest:
             resp.content = 'Unable to load latest.json'
-            log.warn(f'Unable to load latest.json for platform {platform} and buildquality {buildquality}')
+            log.warning(f'Unable to load latest.json for platform {platform} and buildquality {buildquality}')
             resp.status = falcon.HTTP_500
             return
         if latest['version'] == commitid:
@@ -40,63 +33,94 @@ class VSCUpdater(object):
         updatepath = vsc.Utility.first_file(updateglob)
         if not updatepath:
             resp.content = 'Unable to find update payload'
-            log.warn(f'Unable to find update payload from {updateglob}')
+            log.warning(f'Unable to find update payload from {updateglob}')
             resp.status = falcon.HTTP_404
             return
         if not vsc.Utility.hash_file_and_check(updatepath, latest['sha256hash']):
             resp.content = 'Update payload hash mismatch'
-            log.warn(f'Update payload hash mismatch {updatepath}')
+            log.warning(f'Update payload hash mismatch {updatepath}')
             resp.status = falcon.HTTP_403
             return
         # Url to get update
-        latest['url'] = URLROOT + updatepath
+        latest['url'] = vsc.URLROOT + updatepath
         log.debug(f'Client {platform}, Quality {buildquality}. Providing update {updatepath}')
         resp.status = falcon.HTTP_200
         resp.media = latest
 
+class VSCBinaryFromCommitId(object):
+
+    def on_get(self, req, resp, commitid, platform, buildquality):
+        updatedir = os.path.join(vsc.ARTIFACTS_INSTALLERS, platform, buildquality)
+        if not os.path.exists(updatedir):
+            log.warning(f'Update build directory does not exist at {updatedir}. Check sync or sync configuration.')
+            resp.status = falcon.HTTP_500
+            return
+        jsonpath = os.path.join(updatedir, f'{commitid}.json')
+        updatejson = vsc.Utility.load_json(jsonpath)        
+        if not updatejson:
+            resp.content = f'Unable to load {jsonpath}'
+            log.warning(resp.content)
+            resp.status = falcon.HTTP_500
+            return
+        name = updatejson['name']
+        updateglob = os.path.join(updatedir, f'vscode-{name}.*')
+        updatepath = vsc.Utility.first_file(updateglob)
+        if not updatepath:
+            resp.content = f'Unable to find update payload from {updateglob}'
+            log.warning(resp.content)
+            resp.status = falcon.HTTP_404
+            return
+        if not vsc.Utility.hash_file_and_check(updatepath, updatejson['sha256hash']):
+            resp.content = f'Update payload hash mismatch {updatepath}'
+            log.warning(resp.content)
+            resp.status = falcon.HTTP_403
+            return
+        # Url for the client to fetch the update
+        resp.set_header('Location', vsc.URLROOT + updatepath)
+        resp.status = falcon.HTTP_302
+
 class VSCRecommendations(object):
 
     def on_get(self, req, resp):
+        if not os.path.exists(vsc.ARTIFACT_RECOMMENDATION):
+            resp.status = falcon.HTTP_404
+            return
         resp.status = falcon.HTTP_200
         resp.content_type = 'application/octet-stream'
-        with open('/artifacts/recommendations.json', 'r') as f:
+        with open(vsc.ARTIFACT_RECOMMENDATION, 'r') as f:
             resp.body = f.read()
 
 class VSCMalicious(object):
 
     def on_get(self, req, resp):
+        if not os.path.exists(vsc.ARTIFACT_MALICIOUS):
+            resp.status = falcon.HTTP_404
+            return
         resp.status = falcon.HTTP_200
         resp.content_type = 'application/octet-stream'
-        with open('/artifacts/malicious.json', 'r') as f:
+        with open(vsc.ARTIFACT_MALICIOUS, 'r') as f:
             resp.body = f.read()
 
 class VSCGallery(object):
 
-    def __init__(self, vscindex, interval=600):
-        self.home = '/artifacts/extensions'
-        if not os.path.exists(self.home):
-            log.warn(f'Extensions artifact directory does not exist at {self.home}')
+    def __init__(self, interval=3600):
         self.extensions = {}
-        self.vscindex = vscindex
         self.interval = interval
-        self.update_worker = threading.Thread(target=self.update_state_loop, args=())
+        self.loaded = Event()
+        self.update_worker = Thread(target=self.update_state_loop, args=())
         self.update_worker.daemon = True
-        self.update_worker.start()
+        self.update_worker.start()        
 
     def update_state(self):
-        if not os.path.exists(self.home):
-            log.warn(f'Extensions artifact directory does not exist at {self.home}')
-            return
-        for extensiondir in glob.glob(self.home + '/*/'):
-            latestpath = os.path.join(extensiondir, 'latest.json')
-            if not os.path.exists(latestpath):
-                log.warn(f'Extension directory is missing latest.json at {latestpath}')
+        for extensiondir in glob.glob(vsc.ARTIFACTS_EXTENSIONS + '/*/'):
+            latestpath = os.path.join(extensiondir, 'latest.json')            
+            latest = vsc.Utility.load_json(latestpath)
+            if not latest:
+                log.debug(f'Tried to load invalid manifest json {latestpath}')
                 continue
-            with open(latestpath, 'r') as fp:
-                latest = json.load(fp)
 
             # Repoint asset urls
-            asseturi = URLROOT + os.path.join(extensiondir, latest['versions'][0]['version'])
+            asseturi = vsc.URLROOT + os.path.join(extensiondir, latest['versions'][0]['version'])
 
             latest['versions'][0]['assetUri'] = asseturi
             latest['versions'][0]['fallbackAssetUri'] = asseturi            
@@ -116,18 +140,18 @@ class VSCGallery(object):
             latest['stats'] = statistics
 
             self.extensions[name] = latest
-        log.info(f'Loaded {len(self.extensions)} extensions')
-        self.vscindex.update_state()
+        log.info(f'Loaded {len(self.extensions)} extensions')        
 
     def update_state_loop(self):
         while True:
             self.update_state()
+            self.loaded.set()
             log.info(f'Checking for updates in {vsc.Utility.seconds_to_human_time(self.interval)}')
             time.sleep(self.interval)
 
     def on_post(self, req, resp):
         if 'filters' not in req.media or 'criteria' not in req.media['filters'][0] or 'flags' not in req.media:
-            log.warn(f'Post missing critical components. Raw post {req.media}')
+            log.warning(f'Post missing critical components. Raw post {req.media}')
             resp.status = falcon.HTTP_404
             return
 
@@ -224,7 +248,7 @@ class VSCGallery(object):
                 continue
 
             else:
-                log.warn(f"Undefined filter type {crit}")
+                log.warning(f"Undefined filter type {crit}")
         
         # Handle popular / recommended
         if len(result) <= 0 and len(criteria) <= 2:
@@ -258,32 +282,41 @@ class VSCGallery(object):
 class VSCIndex(object):
 
     def __init__(self):
-        self.cache_binaries = "Loading..."
-        self.cache_extensions = "Loading..."
+        pass
 
     def on_get(self, req, resp):        
         resp.content_type = 'text/html'
         with open('/opt/vscoffline/vscgallery/content/index.html', 'r') as f:
             resp.body = f.read()
-        resp.body = resp.body.replace('{binaries}', self.cache_binaries)
-        resp.body = resp.body.replace('{extensions}', self.cache_extensions)
         resp.status = falcon.HTTP_200
 
-    def update_state(self):
-        log.info(f'Updating index cache')
-        self.cache_binaries = self.simple_binary_list('/artifacts/installers/*/*/*')
-        self.cache_extensions = self.simple_binary_list('/artifacts/extensions/*/*/*VSIXPackage')
+class VSCDirectoryBrowse(object):
 
-    def simple_binary_list(self, path):
-        # Hacky af. Should add proper directory browsing support
-        output = ""
-        files = vsc.Utility.files_in_folder(path, False)
-        for f in files:
-            first_file = vsc.Utility.first_file(f, reverse=True)
-            if 'latest.json' in first_file:
-                continue
-            output += f'<a href="{first_file}">{first_file}</a> <br />'
-        return output
+    def __init__(self, root):
+        self.root = root
+
+    def on_get(self, req, resp):
+        requested_path = os.path.join(self.root, req.get_param('path', required=True))
+        # Check the path requested
+        if os.path.commonprefix((os.path.realpath(requested_path), self.root)) != self.root:
+            resp.status = falcon.HTTP_403
+            return
+        resp.content_type = 'text/html'
+        # Load template and replace variables
+        with open('/opt/vscoffline/vscgallery/content/browse.html', 'r') as f:
+            resp.body = f.read()
+        resp.body = resp.body.replace('{PATH}', requested_path)
+        resp.body = resp.body.replace('{CONTENT}', self.simple_dir_browse_response(requested_path))        
+        resp.status = falcon.HTTP_200
+
+    def simple_dir_browse_response(self, path):
+        response = ''
+        for item in vsc.Utility.folders_in_folder(path):
+            response += f'd <a href="/browse?path={os.path.join(path, item)}">{item}</a><br />'
+        for item in vsc.Utility.files_in_folder(path):
+            if item != path:
+                response += f'f <a href="{os.path.join(self.root, path, item)}">{item}</a><br />'
+        return response
 
 class ArtifactChangedHandler(FileSystemEventHandler):
 
@@ -295,8 +328,23 @@ class ArtifactChangedHandler(FileSystemEventHandler):
             log.info('Detected updated.json change, updating extension gallery')
             self.gallery.update_state()
 
-vscindex = VSCIndex()
-vscgallery = VSCGallery(vscindex)
+
+if not os.path.exists(vsc.ARTIFACTS):
+    log.warning(f'Artifact directory missing {vsc.ARTIFACTS}. Cannot proceed.')
+    sys.exit(-1)
+
+if not os.path.exists(vsc.ARTIFACTS_INSTALLERS):
+    log.warning(f'Installer artifact directory missing {vsc.ARTIFACTS_INSTALLERS}. Cannot proceed.')
+    sys.exit(-1)
+
+if not os.path.exists(vsc.ARTIFACTS_EXTENSIONS):
+    log.warning(f'Extensions artifact directory missing {vsc.ARTIFACTS_EXTENSIONS}. Cannot proceed.')
+    sys.exit(-1)
+
+vscgallery = VSCGallery()
+
+log.debug('Waiting for gallery cache to load')
+#vscgallery.loaded.wait()
 
 observer = PollingObserver()
 observer.schedule(ArtifactChangedHandler(vscgallery), '/artifacts/', recursive=False)
@@ -304,13 +352,14 @@ observer.start()
 
 application = falcon.API()
 application.add_route('/api/update/{platform}/{buildquality}/{commitid}', VSCUpdater())
+application.add_route('/commit:{commitid}/{platform}/{buildquality}', VSCBinaryFromCommitId())
 application.add_route('/extensions/workspaceRecommendations.json.gz', VSCRecommendations()) # Why no compress??
 application.add_route('/extensions/marketplace.json', VSCMalicious())
 application.add_route('/_apis/public/gallery/extensionquery', vscgallery)
+application.add_route('/browse', VSCDirectoryBrowse(vsc.ARTIFACTS))
+application.add_route('/', VSCIndex())
 application.add_static_route('/artifacts/', '/artifacts/')
-application.add_route('/', vscindex)
 
 if __name__ == '__main__':
     httpd = simple_server.make_server('0.0.0.0', 5000, application)
     httpd.serve_forever()
-
