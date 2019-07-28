@@ -19,6 +19,7 @@ ARTIFACTS_EXTENSIONS = '/artifacts/extensions'
 ARTIFACT_RECOMMENDATION = '/artifacts/recommendations.json'
 ARTIFACT_MALICIOUS = '/artifacts/malicious.json'
 
+TIMEOUT = 12
 
 class QueryFlags(IntFlag):
     __no_flags_name__ = 'NoneDefined'
@@ -46,7 +47,7 @@ class FilterType(IntFlag):
     SearchText = 10
     ExcludeWithFlags = 12
 
-class SortOrder(IntFlag):
+class SortBy(IntFlag):
     __no_flags_name__ = 'NoneOrRelevance'
     NoneOrRelevance = 0
     LastUpdatedDate = 1
@@ -57,7 +58,7 @@ class SortOrder(IntFlag):
     AverageRating = 6
     WeightedRating = 12
 
-class SortBy(IntFlag):
+class SortOrder(IntFlag):
     __no_flags_name__ = 'Default'
     Default = 0
     Ascending = 1

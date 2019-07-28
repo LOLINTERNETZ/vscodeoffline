@@ -52,7 +52,7 @@ class VSCUpdateDefinition(object):
         url = vsc.URL_BINUPDATES + f"{self.identity}/{self.quality}/{old_commit_id}"
         
         log.debug(f'Update url {url}')
-        result = self.session.get(url, allow_redirects=True)
+        result = self.session.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
         self.checkedForUpdate = True
 
         if result.status_code == 204:
@@ -100,7 +100,7 @@ class VSCUpdateDefinition(object):
             log.debug(f'Previously downloaded {self.identity}, checking hash')
         else:
             log.info(f'Downloading {self.identity} to {destfile}')
-            result = self.session.get(self.updateurl, allow_redirects=True)
+            result = self.session.get(self.updateurl, allow_redirects=True, timeout=vsc.TIMEOUT)
             open(destfile, 'wb').write(result.content)
 
         if not vsc.Utility.hash_file_and_check(destfile, self.sha256hash):
@@ -191,7 +191,7 @@ class VSCExtensionDefinition(object):
         destfile = os.path.join(destination, f'{asset}')
         if not os.path.exists(destfile):
             log.debug(f'Downloading {self.identity} {asset} to {destfile}')
-            result = self.session.get(url, allow_redirects=True)
+            result = self.session.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
             with open(destfile, 'wb') as dest:
                 dest.write(result.content)
     
@@ -279,7 +279,7 @@ class VSCMarketplace(object):
         return recommendations
 
     def get_recommendations_old(self, destination):
-        result = self.session.get(vsc.URL_RECOMMENDATIONS, allow_redirects=True)
+        result = self.session.get(vsc.URL_RECOMMENDATIONS, allow_redirects=True, timeout=vsc.TIMEOUT)
         if result.status_code != 200:            
             log.warning(f"get_recommendations failed accessing url {vsc.URL_RECOMMENDATIONS}, unhandled status code {result.status_code}")
             return False
@@ -297,7 +297,7 @@ class VSCMarketplace(object):
         return packages
 
     def get_malicious(self, destination, extensions=None):
-        result = self.session.get(vsc.URL_MALICIOUS, allow_redirects=True)
+        result = self.session.get(vsc.URL_MALICIOUS, allow_redirects=True, timeout=vsc.TIMEOUT)
         if result.status_code != 200:            
             log.warning(f"get_malicious failed accessing url {vsc.URL_MALICIOUS}, unhandled status code {result.status_code}")
             return False
@@ -372,7 +372,7 @@ class VSCMarketplace(object):
             #log.debug(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
             query = self._query(filtertype, filtervalue, pageNumber, pageSize)
-            result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True)
+            result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
             jresult = result.json()
             count = count + pageSize
             if 'results' in jresult:
