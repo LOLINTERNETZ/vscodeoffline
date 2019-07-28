@@ -29,10 +29,11 @@ Possible Todo List:
 * Add test cases.
 
 ## Changelog
-1.0.11 - Fixed bugs in Gallery sorting, and added timeouts for Sync.
-1.0.10 - Refactored to improve consistency.
-1.0.9  - Added support for Remote Development, currently (2019-05-12) available to insiders. Refactored various badness.
-1.0.8  - Added insiders support and support for extension packs.
+
+ * 1.0.11 - Fixed bugs in Gallery sorting, and added timeouts for Sync.
+ * 1.0.10 - Refactored to improve consistency.
+ * 1.0.9  - Added support for Remote Development, currently (2019-05-12) available to insiders. Refactored various badness.
+ * 1.0.8  - Added insiders support and support for extension packs.
 
 ## Requirements
 * Docker (ideally with docker-compose for simplicity)
@@ -110,3 +111,53 @@ This guide will setup the vscsync and vscgallery service on the same Docker host
 5. Using Chrome navigate to https://update.code.visualstudio.com. You should not see any certificate warnings, if you do it's unlikely to work in VS Code.
 
 6. Open VS Code, hopefully you can magically install extensions and update the install. The Help > Developer Tools > Network should tell you what is going on.
+
+
+## Sync Arguments (vscsync)
+These arguments can be passed as command line arguments to sync.py  (e.g. --varA or --varB), or passed via the Docker environment variable `SYNCARGS`.
+
+### Typical Sync Args:
+ * `--sync` To fetch stable binaries and popular extensions.
+ * `--syncall` To fetch everything (stable binaries, insider binaries and all extensions).
+ * `--sync --check-insider` To fetch stable binaries, insider binaries and popular extensions.
+
+ ### Possible Args:
+```
+usage: sync.py [-h] [--sync] [--syncall] [--artifacts ARTIFACTDIR]
+               [--frequency FREQUENCY] [--check-binaries] [--check-insider]
+               [--check-recommended-extensions] [--check-specified-extensions]
+               [--extension-name EXTENSIONNAME]
+               [--extension-search EXTENSIONSEARCH] [--update-binaries]
+               [--update-extensions] [--update-malicious-extensions]
+               [--skip-binaries] [--debug]
+
+Synchronises VSCode in an Offline Environment
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --sync                The basic-user sync. It includes stable binaries and
+                        typical extensions
+  --syncall             The power-user sync. It includes all binaries and
+                        extensions
+  --artifacts ARTIFACTDIR
+                        Path to downloaded artifacts
+  --frequency FREQUENCY
+                        The frequency to try and update (e.g. sleep for '12h'
+                        and try again
+  --check-binaries      Check for updated binaries
+  --check-insider       Check for updated insider binaries
+  --check-recommended-extensions
+                        Check for recommended extensions
+  --check-specified-extensions
+                        Check for extensions in <artifacts>/specified.json
+  --extension-name EXTENSIONNAME
+                        Find a specific extension by name
+  --extension-search EXTENSIONSEARCH
+                        Search for a set of extensions
+  --update-binaries     Download binaries
+  --update-extensions   Download extensions
+  --update-malicious-extensions
+                        Update the malicious extension list
+  --skip-binaries       Skip downloading binaries
+  --debug               Show debug output
+  ```
