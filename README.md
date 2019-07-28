@@ -18,8 +18,9 @@ On the non-Internet connected system, **vscgallery**:
 * Implements the updater interface to enable offline updating;
 * Implements the extension API to enable offline extension use;
 * Implements the malicious extension list; 
-* Supports extension search (name, author and short description) and sorting; and
-* Supports custom/private extensions (follow the structure of a mirrored extension).
+* Supports extension search (name, author and short description) and sorting;
+* Supports custom/private extensions (follow the structure of a mirrored extension); and
+* Supports Remote Development.
 
 Possible Todo List:
 * vscgallery - Support paging, if it's really needed (who searches 1000s of extensions anyway).
@@ -28,12 +29,13 @@ Possible Todo List:
 * Add test cases.
 
 ## Changelog
-1.0.9 - Added support for Remote Development, currently (2019-05-12) available to insiders. Refactored various badness.
-1.0.8 - Added insiders support and support for extension packs.
+1.0.11 - Fixed bugs in Gallery sorting, and added timeouts for Sync.
+1.0.10 - Refactored to improve consistency.
+1.0.9  - Added support for Remote Development, currently (2019-05-12) available to insiders. Refactored various badness.
+1.0.8  - Added insiders support and support for extension packs.
 
 ## Requirements
-
-* Docker (with docker-compose, for simplicity)
+* Docker (ideally with docker-compose for simplicity)
 
 ## Getting Started - Full Offline Use - Using Docker Containers
 

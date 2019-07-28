@@ -155,13 +155,20 @@ class VSCGallery(object):
             resp.status = falcon.HTTP_404
             return
 
-        #flags = req.media['flags']
         criteria = req.media['filters'][0]['criteria']
-        #pagenumber = req.media['filters'][0]['pageNumber']
-        #pagesize = req.media['filters'][0]['pageSize']
         sortorder = vsc.SortOrder(req.media['filters'][0]['sortOrder'])
         sortby = vsc.SortBy(req.media['filters'][0]['sortBy'])
+        
+        # Unused
+        #flags = req.media['flags']        
+        #pagenumber = req.media['filters'][0]['pageNumber']
+        #pagesize = req.media['filters'][0]['pageSize']
         #log.info(f'Search criteria {criteria}, flags {flags}, page {pagenumber}, limit {pagesize}, sortby {sortby}, sortorder {sortorder}')
+
+        # If no order specified, default to InstallCount (e.g. popular first)
+        if sortby == vsc.SortBy.NoneOrRelevance:
+            sortby = vsc.SortBy.InstallCount
+            sortorder = vsc.SortOrder.Descending            
 
         result = self._apply_criteria(criteria)
         self._sort(result, sortby, sortorder)
@@ -169,28 +176,28 @@ class VSCGallery(object):
         resp.status = falcon.HTTP_200
 
     def _sort(self, result, sortby, sortorder):
-        if sortorder == vsc.SortBy.Ascending:
+        if sortorder == vsc.SortOrder.Ascending:
             rev = False
         else:
             rev = True
 
-        if sortby == vsc.SortOrder.PublisherName:
+        if sortby == vsc.SortBy.PublisherName:
             rev = not rev
             result.sort(key=lambda k: k['publisher']['publisherName'], reverse=rev)
 
-        elif sortby == vsc.SortOrder.InstallCount:
+        elif sortby == vsc.SortBy.InstallCount:
             result.sort(key=lambda k: k['stats']['install'], reverse=rev)
 
-        elif sortby == vsc.SortOrder.AverageRating:
+        elif sortby == vsc.SortBy.AverageRating:
             result.sort(key=lambda k: k['stats']['averagerating'], reverse=rev)
 
-        elif sortby == vsc.SortOrder.WeightedRating:
+        elif sortby == vsc.SortBy.WeightedRating:
             result.sort(key=lambda k: k['stats']['weightedRating'], reverse=rev)
 
-        elif sortby == vsc.SortOrder.LastUpdatedDate:
+        elif sortby == vsc.SortBy.LastUpdatedDate:
             result.sort(key=lambda k: vsc.Utility.from_json_datetime(k['lastUpdated']), reverse=rev)
 
-        elif sortby == vsc.SortOrder.PublishedDate:
+        elif sortby == vsc.SortBy.PublishedDate:
             result.sort(key=lambda k: vsc.Utility.from_json_datetime(k['publishedDate']), reverse=rev)
 
         else:

@@ -346,7 +346,7 @@ class VSCMarketplace(object):
         return self._query_marketplace(vsc.FilterType.SearchText, searchtext)
     
     def search_top_n(self, n=200):
-        return self._query_marketplace(vsc.FilterType.SearchText, '', limit=n, sortOrder=vsc.SortOrder.InstallCount, sortBy=vsc.SortBy.Descending)
+        return self._query_marketplace(vsc.FilterType.SearchText, '', limit=n, sortOrder=vsc.SortOrder.Descending, sortBy=vsc.SortBy.InstallCount)
 
     def search_by_extension_id(self, extensionid):
         result = self._query_marketplace(vsc.FilterType.ExtensionId, extensionid)
@@ -364,7 +364,7 @@ class VSCMarketplace(object):
             #log.debug(f"search_by_extension_name failed {extensionname} got {result}")
             return False
 
-    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.NoneOrRelevance, sortBy=vsc.SortBy.Default):
+    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance):
         extensions = {}
         total = 0
         count = 0
@@ -402,8 +402,8 @@ class VSCMarketplace(object):
         result = {
             'pageNumber': pageNumber,
             'pageSize': pageSize,
-            'sortBy': 0,
-            'sortOrder': 0,
+            'sortBy': vsc.SortBy.NoneOrRelevance,
+            'sortOrder': vsc.SortOrder.Default,
             'criteria': [
                 self._query_filter_criteria(vsc.FilterType.Target, 'Microsoft.VisualStudio.Code'),
                 self._query_filter_criteria(vsc.FilterType.ExcludeWithFlags, str(int(vsc.QueryFlags.Unpublished)))                
