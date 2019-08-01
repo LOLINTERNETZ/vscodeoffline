@@ -30,6 +30,7 @@ Possible Todo List:
 
 ## Changelog
 
+ * 1.0.12 - @ttutko fixed a bug preventing multiple build qualities (stable/insider) from being downloaded. Thanks @darkonejr for investigating and reporting.
  * 1.0.11 - Fixed bugs in Gallery sorting, and added timeouts for Sync.
  * 1.0.10 - Refactored to improve consistency.
  * 1.0.9  - Added support for Remote Development, currently (2019-05-12) available to insiders. Refactored various badness.

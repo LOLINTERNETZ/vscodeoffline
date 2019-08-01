@@ -99,7 +99,7 @@ class VSCUpdateDefinition(object):
         if os.path.exists(destfile):
             log.debug(f'Previously downloaded {self.identity}, checking hash')
         else:
-            log.info(f'Downloading {self.identity} to {destfile}')
+            log.info(f'Downloading {self.identity} {self.quality} to {destfile}')
             result = self.session.get(self.updateurl, allow_redirects=True, timeout=vsc.TIMEOUT)
             open(destfile, 'wb').write(result.content)
 
