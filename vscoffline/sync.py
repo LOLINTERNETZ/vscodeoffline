@@ -238,7 +238,7 @@ class VSCUpdates(object):
                             ver = VSCUpdateDefinition(platform, architecture, buildtype, quality)
                             ver.check_for_update()
                             log.info(ver)
-                            versions[ver.identity] = ver
+                            versions[f'{ver.identity}-{ver.quality}'] = ver
         return versions
 
     @staticmethod
