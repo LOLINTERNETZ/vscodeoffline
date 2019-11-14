@@ -165,7 +165,11 @@ class VSCExtensionDefinition(object):
         destination = os.path.join(destination, self.identity)
         if not os.path.isdir(destination):
             os.makedirs(destination)
+        # Save as latest 
         with open(os.path.join(destination, 'latest.json'), 'w') as outfile:
+            json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
+        # Save in the version folder
+        with open(os.path.join(destination, self.version(), 'extension.json'), 'w') as outfile:
             json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
 
     def version(self):
@@ -514,7 +518,10 @@ if __name__ == '__main__':
             for idkey in versions:
                 if versions[idkey].updateurl:
                     result = versions[idkey].download_update(config.artifactdir_installers)
-                    versions[idkey].save_state(config.artifactdir_installers)
+
+                    # Only save the reference json if the download was successful
+                    if result:
+                        versions[idkey].save_state(config.artifactdir_installers)
         
         if config.checkspecified:
             log.info('Syncing VS Code Specified Extensions')

@@ -112,35 +112,66 @@ class VSCGallery(object):
         self.update_worker.start()        
 
     def update_state(self):
+        # Load each extension
         for extensiondir in glob.glob(vsc.ARTIFACTS_EXTENSIONS + '/*/'):
-            latestpath = os.path.join(extensiondir, 'latest.json')            
-            latest = vsc.Utility.load_json(latestpath)
+
+            # Load the latest version of each extension
+            latestpath = os.path.join(extensiondir, 'latest.json')
+            latest = vsc.Utility.load_json(latestpath)            
+
             if not latest:
                 log.debug(f'Tried to load invalid manifest json {latestpath}')
                 continue
 
-            # Repoint asset urls
-            asseturi = vsc.URLROOT + os.path.join(extensiondir, latest['versions'][0]['version'])
+            latest = self.process_loaded_extension(latest, extensiondir)
 
-            latest['versions'][0]['assetUri'] = asseturi
-            latest['versions'][0]['fallbackAssetUri'] = asseturi            
-            for asset in latest['versions'][0]['files']:
+            # Determine the latest version
+            latestversion = latest['versions'][0]
+
+            # Find other versions
+            for versionpath in glob.glob(extensiondir + '/*/extension.json'):
+                #log.info(f'Version path: {versionpath}')
+                vers = vsc.Utility.load_json(versionpath)
+                if not vers:
+                    log.debug(f'Tried to load invalid version manifest json {versionpath}')
+                    continue
+                vers = self.process_loaded_extension(vers, extensiondir)
+
+                # If this extension.json is actually the latest version, then ignore it
+                if latestversion == vers['versions'][0]:
+                    continue
+
+                # Append this other possible version
+                latest['versions'].append(vers['versions'][0])
+
+            # Sort versions
+            latest['versions'] = sorted(latest['versions'], key=lambda k: k['version'], reverse=True)
+            
+            # Save the extension in the cache
+            name = latest['identity']
+            self.extensions[name] = latest
+            
+        log.info(f'Loaded {len(self.extensions)} extensions')        
+
+    def process_loaded_extension(self, extension, extensiondir):
+            name = extension['identity']
+
+            # Repoint asset urls
+            asseturi = vsc.URLROOT + os.path.join(extensiondir, extension['versions'][0]['version'])
+            extension['versions'][0]['assetUri'] = asseturi
+            extension['versions'][0]['fallbackAssetUri'] = asseturi
+            for asset in extension['versions'][0]['files']:
                 asset['source'] = asseturi + '/' + asset['assetType']   
 
-            name = latest['identity']
-
             # Map statistics for later lookup
-            if 'statistics' not in latest or not latest['statistics']:
+            if 'statistics' not in extension or not extension['statistics']:
                 log.info(f'Ignoring extension {name} as its statistics are missing. {extensiondir}.')
-                continue
-
+                return
             statistics = {}
-            for statistic in latest['statistics']:
+            for statistic in extension['statistics']:
                 statistics[statistic['statisticName']] = statistic['value']
-            latest['stats'] = statistics
-
-            self.extensions[name] = latest
-        log.info(f'Loaded {len(self.extensions)} extensions')        
+            extension['stats'] = statistics
+            return extension
 
     def update_state_loop(self):
         while True:
@@ -155,15 +186,25 @@ class VSCGallery(object):
             resp.status = falcon.HTTP_404
             return
 
-        criteria = req.media['filters'][0]['criteria']
-        sortorder = vsc.SortOrder(req.media['filters'][0]['sortOrder'])
-        sortby = vsc.SortBy(req.media['filters'][0]['sortBy'])
+        sortby = vsc.SortBy.NoneOrRelevance
+        sortorder = vsc.SortOrder.Default  
+        #flags = vsc.QueryFlags.NoneDefined
+        criteria = req.media['filters'][0]['criteria']        
         
-        # Unused
-        #flags = req.media['flags']        
+        if req.media['filters'][0]['sortOrder']:
+            sortorder = vsc.SortOrder(req.media['filters'][0]['sortOrder'])        
+
+        if req.media['filters'][0]['sortBy']:
+            sortby = vsc.SortBy(req.media['filters'][0]['sortBy'])
+
+        # Flags can be used for version management, but it appears the client doesn't care what's sent back
+        #if req.media['flags']:
+        #    flags = vsc.QueryFlags(req.media['flags'])
+
+        # Unused        
         #pagenumber = req.media['filters'][0]['pageNumber']
         #pagesize = req.media['filters'][0]['pageSize']
-        #log.info(f'Search criteria {criteria}, flags {flags}, page {pagenumber}, limit {pagesize}, sortby {sortby}, sortorder {sortorder}')
+        #log.info(f'CRITERIA {criteria}, flags {flags}, sortby {sortby}, sortorder {sortorder}')
 
         # If no order specified, default to InstallCount (e.g. popular first)
         if sortby == vsc.SortBy.NoneOrRelevance:
@@ -171,7 +212,7 @@ class VSCGallery(object):
             sortorder = vsc.SortOrder.Descending            
 
         result = self._apply_criteria(criteria)
-        self._sort(result, sortby, sortorder)
+        self._sort(result, sortby, sortorder)        
         resp.media = self._build_response(result)
         resp.status = falcon.HTTP_200
 
@@ -243,7 +284,7 @@ class VSCGallery(object):
             elif ft == vsc.FilterType.SearchText:
                 for name in self.extensions:
                     # Search in extension name, display name and short description
-                    if val in name.lower():                    
+                    if val in name.lower():
                         result.append(self.extensions[name])
                     elif 'displayName' in self.extensions[name] and val in self.extensions[name]['displayName'].lower():
                         result.append(self.extensions[name])

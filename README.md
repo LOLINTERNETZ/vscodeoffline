@@ -18,18 +18,19 @@ On the non-Internet connected system, **vscgallery**:
 * Implements the updater interface to enable offline updating;
 * Implements the extension API to enable offline extension use;
 * Implements the malicious extension list; 
+* Implements initial support for multiple versions;
 * Supports extension search (name, author and short description) and sorting;
 * Supports custom/private extensions (follow the structure of a mirrored extension); and
 * Supports Remote Development.
 
-Possible Todo List:
+Possible ToDo List:
 * vscgallery - Support paging, if it's really needed (who searches 1000s of extensions anyway).
 * Investigate some form of dependency handling (if possible).
-* Investigate support for multiple versions of extensions.
 * Add test cases.
 
 ## Changelog
 
+ * 1.0.13 - Added initial support for extension version handling. Hopefully this resolves issue #4.
  * 1.0.12 - @ttutko fixed a bug preventing multiple build qualities (stable/insider) from being downloaded. Thanks @darkonejr for investigating and reporting.
  * 1.0.11 - Fixed bugs in Gallery sorting, and added timeouts for Sync.
  * 1.0.10 - Refactored to improve consistency.
