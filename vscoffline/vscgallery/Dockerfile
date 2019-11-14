@@ -1,5 +1,8 @@
 FROM python:3.7-alpine
 
+# For gunicorn > 20.0.0
+RUN apk --no-cache add libc-dev binutils 
+
 COPY ./vscoffline/ /opt/vscoffline
 
 RUN mkdir /artifacts/
