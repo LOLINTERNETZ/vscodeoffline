@@ -125,6 +125,10 @@ class VSCGallery(object):
 
             latest = self.process_loaded_extension(latest, extensiondir)
 
+            if not latest:
+                log.debug(f'Unable to determine latest version {latestpath}')
+                continue
+
             # Determine the latest version
             latestversion = latest['versions'][0]
 
@@ -138,7 +142,7 @@ class VSCGallery(object):
                 vers = self.process_loaded_extension(vers, extensiondir)
 
                 # If this extension.json is actually the latest version, then ignore it
-                if latestversion == vers['versions'][0]:
+                if not vers or latestversion == vers['versions'][0]:
                     continue
 
                 # Append this other possible version

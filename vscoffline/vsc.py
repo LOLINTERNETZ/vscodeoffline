@@ -46,6 +46,7 @@ class FilterType(IntFlag):
     Featured = 9
     SearchText = 10
     ExcludeWithFlags = 12
+    UndefinedType = 14
 
 class SortBy(IntFlag):
     __no_flags_name__ = 'NoneOrRelevance'
