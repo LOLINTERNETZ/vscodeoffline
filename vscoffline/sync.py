@@ -96,18 +96,18 @@ class VSCUpdateDefinition(object):
             suffix = ''.join(pathlib.Path(self.updateurl).suffixes)
         destfile = os.path.join(destination, f'vscode-{self.name}{suffix}')
 
-        if os.path.exists(destfile):
-            log.debug(f'Previously downloaded {self.identity}, checking hash')
+        if os.path.exists(destfile) and vsc.Utility.hash_file_and_check(destfile, self.sha256hash):
+            log.debug(f'Previously downloaded {self}')
         else:
-            log.info(f'Downloading {self.identity} {self.quality} to {destfile}')
+            log.info(f'Downloading {self} to {destfile}')
             result = self.session.get(self.updateurl, allow_redirects=True, timeout=vsc.TIMEOUT)
             open(destfile, 'wb').write(result.content)
 
-        if not vsc.Utility.hash_file_and_check(destfile, self.sha256hash):
-            log.warning(f'HASH MISMATCH for {self.identity} at {destfile} expected {self.sha256hash}. Removing local file.')
-            os.remove(destfile)
-            return False
-        log.debug(f'Hash ok for {self.identity} with {self.sha256hash}')
+            if not vsc.Utility.hash_file_and_check(destfile, self.sha256hash):
+                log.warning(f'HASH MISMATCH for {self} at {destfile} expected {self.sha256hash}. Removing local file.')
+                os.remove(destfile)
+                return False
+            log.debug(f'Hash ok for {self} with {self.sha256hash}')
         return True
 
     def save_state(self, destination):
@@ -121,11 +121,11 @@ class VSCUpdateDefinition(object):
             vsc.Utility.write_json(os.path.join(destination, self.quality, f'{self.version}.json'), self)
 
     def __repr__(self):
-        strs = f"<{self.__class__.__name__}> Target: {self.identity} Quality:{self.quality} "        
+        strs = f"<{self.__class__.__name__}> {self.quality}/{self.identity}"        
         if self.updateurl:
-            strs += f"Update available: {self.name} Build: {self.version}"
+            strs += f" - Version: {self.name} ({self.version})"
         elif self.checkedForUpdate:
-            strs += f"No update found"
+            strs += f" - Latest version not available"
         return strs
 
 class VSCExtensionDefinition(object):
@@ -219,7 +219,7 @@ class VSCExtensionDefinition(object):
         return False
 
     def __repr__(self):
-        strs = f"<{self.__class__.__name__}> Target: {self.identity} Id: {self.extensionId} Version: {self.version()}"
+        strs = f"<{self.__class__.__name__}> {self.identity} ({self.extensionId}) - Version: {self.version()}"
         return strs
 
 class VSCUpdates(object):
@@ -510,7 +510,7 @@ if __name__ == '__main__':
         mp = VSCMarketplace(config.checkinsider)
 
         if config.checkbinaries and not config.skipbinaries:
-            log.info('Syncing VS Code Versions')
+            log.info('Syncing VS Code Update Versions')
             versions = VSCUpdates.latest_versions(config.checkinsider)
 
         if config.updatebinaries and not config.skipbinaries:
@@ -551,7 +551,7 @@ if __name__ == '__main__':
             log.info('Syncing VS Code Recommended Extensions')            
             recommended = mp.get_recommendations(os.path.abspath(config.artifactdir))
             for item in recommended:
-                log.info(item)
+                log.debug(item)
                 extensions[item.identity] = item
         
         if config.updatemalicious:
@@ -571,7 +571,7 @@ if __name__ == '__main__':
                 count = count + 1
 
             for bonusextension in bonus:
-                log.info(f'Processing Embedded Extension: {bonusextension}')
+                log.debug(f'Processing Embedded Extension: {bonusextension}')
                 bonusextension.download_assets(config.artifactdir_extensions)                
                 bonusextension.save_state(config.artifactdir_extensions)
                 
