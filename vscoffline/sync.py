@@ -537,7 +537,7 @@ if __name__ == '__main__':
             results = mp.search_by_text(config.extensionsearch)
             log.info(f'Found {len(results)} extensions')
             for item in results:
-                log.info(item)
+                log.debug(item)
                 extensions[item.identity] = item
 
         if config.extensionname:

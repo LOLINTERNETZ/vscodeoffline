@@ -169,12 +169,17 @@ class VSCGallery(object):
 
             # Map statistics for later lookup
             if 'statistics' not in extension or not extension['statistics']:
-                log.info(f'Ignoring extension {name} as its statistics are missing. {extensiondir}.')
-                return
-            statistics = {}
-            for statistic in extension['statistics']:
-                statistics[statistic['statisticName']] = statistic['value']
-            extension['stats'] = statistics
+                log.info(f'Statistics are missing from extension {name} in {extensiondir}, generating.')
+                extension['stats'] = {
+                    'averagerating': 0,
+                    'install': 0,
+                    'weightedRating': 0
+                }
+            else:
+                statistics = {}
+                for statistic in extension['statistics']:
+                    statistics[statistic['statisticName']] = statistic['value']
+                extension['stats'] = statistics       
             return extension
 
     def update_state_loop(self):
