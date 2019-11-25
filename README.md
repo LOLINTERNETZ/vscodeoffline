@@ -29,7 +29,8 @@ Possible ToDo List:
 * Add test cases.
 
 ## Changelog
-
+ * 1.0.15 - Improve extension stats handling.
+ * 1.0.14 - Fixed insider builds being re-fetched.
  * 1.0.13 - Added initial support for extension version handling. Hopefully this resolves issue #4.
  * 1.0.12 - @ttutko fixed a bug preventing multiple build qualities (stable/insider) from being downloaded. Thanks @darkonejr for investigating and reporting.
  * 1.0.11 - Fixed bugs in Gallery sorting, and added timeouts for Sync.
