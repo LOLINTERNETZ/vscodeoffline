@@ -11,11 +11,11 @@ services:
     volumes:
       # Enable for dev
       #- ./vscoffline/:/opt/vscoffline/:ro
-      - /media/ronyu/My Book/Extras/code-plugins/:/artifacts/
+      - ./artifacts/:/artifacts/
     environment:
-      #- SYNCARGS=--sync
+      - SYNCARGS=--sync
       # Enable to sync all extensions
-      - SYNCARGS=--syncall
+      #- SYNCARGS=--syncall
 
   vscgallery:
     image: lolinternet/vscgallery:latest
