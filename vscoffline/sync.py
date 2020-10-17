@@ -2,6 +2,7 @@ import os, sys, argparse, requests, pathlib, hashlib, uuid, logzero, logging, js
 from logzero import logger as log
 from pytimeparse.timeparse import timeparse
 import vsc
+from distutils.dir_util import create_tree
 
 
 class VSCUpdateDefinition(object):
@@ -186,13 +187,12 @@ class VSCExtensionDefinition(object):
             log.warning('download_asset() cannot download update if the update definition has not been downloaded')
             return
         destination = os.path.join(destination, self.identity, self.version())
-        if not os.path.isdir(destination):
-            os.makedirs(destination)
         url = self._get_asset_source(asset)
         if not url:
             log.warning('download_asset() cannot download update as asset url is missing')
             return
         destfile = os.path.join(destination, f'{asset}')
+        create_tree(os.path.abspath(os.sep), (destfile,))
         if not os.path.exists(destfile):
             log.debug(f'Downloading {self.identity} {asset} to {destfile}')
             result = self.session.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
