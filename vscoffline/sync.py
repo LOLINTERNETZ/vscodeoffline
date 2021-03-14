@@ -470,12 +470,19 @@ if __name__ == '__main__':
     parser.add_argument('--update-malicious-extensions', dest='updatemalicious', action='store_true', help='Update the malicious extension list')
     parser.add_argument('--skip-binaries', dest='skipbinaries', action='store_true', help='Skip downloading binaries')
     parser.add_argument('--debug', dest='debug', action='store_true', help='Show debug output')
+    parser.add_argument('--logfile', dest='logfile', default=None, help='Sets a logfile to store loggging output')
     config = parser.parse_args()
     
     if config.debug:
         logzero.loglevel(logging.DEBUG)
     else:
         logzero.loglevel(logging.INFO)
+        
+    if config.logfile:
+        log_dir = os.path.dirname(os.path.abspath(config.logfile))
+        if not os.path.exists(log_dir):
+            raise FileNotFoundError(f'Log directory does not exist at {log_dir}')        
+        logzero.logfile(config.logfile, maxBytes=1000000, backupCount=3)
 
     config.artifactdir_installers = os.path.join(os.path.abspath(config.artifactdir), 'installers')
     config.artifactdir_extensions = os.path.join(os.path.abspath(config.artifactdir), 'extensions')
