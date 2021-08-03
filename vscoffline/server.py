@@ -17,7 +17,7 @@ class VSCUpdater(object):
             resp.status = falcon.HTTP_500
             return
         latestpath = os.path.join(updatedir, 'latest.json')
-        latest = vsc.Utility.load_json(latestpath)        
+        latest = vsc.Utility.load_json(latestpath)
         if not latest:
             resp.content = 'Unable to load latest.json'
             log.warning(f'Unable to load latest.json for platform {platform} and buildquality {buildquality}')
@@ -56,7 +56,7 @@ class VSCBinaryFromCommitId(object):
             resp.status = falcon.HTTP_500
             return
         jsonpath = os.path.join(updatedir, f'{commitid}.json')
-        updatejson = vsc.Utility.load_json(jsonpath)        
+        updatejson = vsc.Utility.load_json(jsonpath)
         if not updatejson:
             resp.content = f'Unable to load {jsonpath}'
             log.warning(resp.content)
@@ -109,7 +109,7 @@ class VSCGallery(object):
         self.loaded = Event()
         self.update_worker = Thread(target=self.update_state_loop, args=())
         self.update_worker.daemon = True
-        self.update_worker.start()        
+        self.update_worker.start()
 
     def update_state(self):
         # Load each extension
@@ -117,7 +117,7 @@ class VSCGallery(object):
 
             # Load the latest version of each extension
             latestpath = os.path.join(extensiondir, 'latest.json')
-            latest = vsc.Utility.load_json(latestpath)            
+            latest = vsc.Utility.load_json(latestpath)
 
             if not latest:
                 log.debug(f'Tried to load invalid manifest json {latestpath}')
@@ -150,12 +150,12 @@ class VSCGallery(object):
 
             # Sort versions
             latest['versions'] = sorted(latest['versions'], key=lambda k: k['version'], reverse=True)
-            
+
             # Save the extension in the cache
             name = latest['identity']
             self.extensions[name] = latest
-            
-        log.info(f'Loaded {len(self.extensions)} extensions')        
+
+        log.info(f'Loaded {len(self.extensions)} extensions')
 
     def process_loaded_extension(self, extension, extensiondir):
             name = extension['identity']
@@ -165,7 +165,7 @@ class VSCGallery(object):
             extension['versions'][0]['assetUri'] = asseturi
             extension['versions'][0]['fallbackAssetUri'] = asseturi
             for asset in extension['versions'][0]['files']:
-                asset['source'] = asseturi + '/' + asset['assetType']   
+                asset['source'] = asseturi + '/' + asset['assetType']
 
             # Map statistics for later lookup
             if 'statistics' not in extension or not extension['statistics']:
@@ -179,7 +179,7 @@ class VSCGallery(object):
                 statistics = {}
                 for statistic in extension['statistics']:
                     statistics[statistic['statisticName']] = statistic['value']
-                extension['stats'] = statistics       
+                extension['stats'] = statistics
             return extension
 
     def update_state_loop(self):
@@ -196,12 +196,12 @@ class VSCGallery(object):
             return
 
         sortby = vsc.SortBy.NoneOrRelevance
-        sortorder = vsc.SortOrder.Default  
+        sortorder = vsc.SortOrder.Default
         #flags = vsc.QueryFlags.NoneDefined
-        criteria = req.media['filters'][0]['criteria']        
-        
+        criteria = req.media['filters'][0]['criteria']
+
         if req.media['filters'][0]['sortOrder']:
-            sortorder = vsc.SortOrder(req.media['filters'][0]['sortOrder'])        
+            sortorder = vsc.SortOrder(req.media['filters'][0]['sortOrder'])
 
         if req.media['filters'][0]['sortBy']:
             sortby = vsc.SortBy(req.media['filters'][0]['sortBy'])
@@ -210,7 +210,7 @@ class VSCGallery(object):
         #if req.media['flags']:
         #    flags = vsc.QueryFlags(req.media['flags'])
 
-        # Unused        
+        # Unused
         #pagenumber = req.media['filters'][0]['pageNumber']
         #pagesize = req.media['filters'][0]['pageSize']
         #log.info(f'CRITERIA {criteria}, flags {flags}, sortby {sortby}, sortorder {sortorder}')
@@ -218,10 +218,10 @@ class VSCGallery(object):
         # If no order specified, default to InstallCount (e.g. popular first)
         if sortby == vsc.SortBy.NoneOrRelevance:
             sortby = vsc.SortBy.InstallCount
-            sortorder = vsc.SortOrder.Descending            
+            sortorder = vsc.SortOrder.Descending
 
         result = self._apply_criteria(criteria)
-        self._sort(result, sortby, sortorder)        
+        self._sort(result, sortby, sortorder)
         resp.media = self._build_response(result)
         resp.status = falcon.HTTP_200
 
@@ -252,7 +252,7 @@ class VSCGallery(object):
 
         else:
             rev = not rev
-            result.sort(key=lambda k: k['displayName'], reverse=rev)     
+            result.sort(key=lambda k: k['displayName'], reverse=rev)
 
     def _apply_criteria(self, criteria):
         result = []
@@ -266,7 +266,7 @@ class VSCGallery(object):
             if ft == vsc.FilterType.Tag:
                 # ?? Tags
                 log.info(f"Not implemented filter type {ft} for {val}")
-                continue   
+                continue
 
             elif ft == vsc.FilterType.ExtensionId:
                 for name in self.extensions:
@@ -274,10 +274,10 @@ class VSCGallery(object):
                         result.append(self.extensions[name])
 
             elif ft == vsc.FilterType.Category:
-                log.info(f"Not implemented filter type {ft} for {val}")  
+                log.info(f"Not implemented filter type {ft} for {val}")
                 continue
 
-            elif ft == vsc.FilterType.ExtensionName:                
+            elif ft == vsc.FilterType.ExtensionName:
                 for name in self.extensions:
                     if name.lower() == val:
                         result.append(self.extensions[name])
@@ -306,7 +306,7 @@ class VSCGallery(object):
 
             else:
                 log.warning(f"Undefined filter type {crit}")
-        
+
         # Handle popular / recommended
         if len(result) <= 0 and len(criteria) <= 2:
             log.info(f'Search criteria {criteria}')
@@ -320,7 +320,7 @@ class VSCGallery(object):
                 {
                     'extensions': resultingExtensions,
                     'pagingToken': None,
-                    'resultMetadata': [ 
+                    'resultMetadata': [
                         {
                             'metadataType': 'ResultCount',
                             'metadataItems': [
@@ -329,7 +329,7 @@ class VSCGallery(object):
                                     'count': len(resultingExtensions)
                                 }
                             ]
-                        }                    
+                        }
                     ]
                 }
             ]
@@ -341,7 +341,7 @@ class VSCIndex(object):
     def __init__(self):
         pass
 
-    def on_get(self, req, resp):        
+    def on_get(self, req, resp):
         resp.content_type = 'text/html'
         with open('/opt/vscoffline/vscgallery/content/index.html', 'r') as f:
             resp.body = f.read()
@@ -363,7 +363,7 @@ class VSCDirectoryBrowse(object):
         with open('/opt/vscoffline/vscgallery/content/browse.html', 'r') as f:
             resp.body = f.read()
         resp.body = resp.body.replace('{PATH}', requested_path)
-        resp.body = resp.body.replace('{CONTENT}', self.simple_dir_browse_response(requested_path))        
+        resp.body = resp.body.replace('{CONTENT}', self.simple_dir_browse_response(requested_path))
         resp.status = falcon.HTTP_200
 
     def simple_dir_browse_response(self, path):
