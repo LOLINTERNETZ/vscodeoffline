@@ -407,7 +407,7 @@ observer = PollingObserver()
 observer.schedule(ArtifactChangedHandler(vscgallery), '/artifacts/', recursive=False)
 observer.start()
 
-application = falcon.API()
+application = falcon.App(cors_enable=True)
 application.add_route('/api/update/{platform}/{buildquality}/{commitid}', VSCUpdater())
 application.add_route('/commit:{commitid}/{platform}/{buildquality}', VSCBinaryFromCommitId())
 application.add_route('/extensions/workspaceRecommendations.json.gz', VSCRecommendations()) # Why no compress??
