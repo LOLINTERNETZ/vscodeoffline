@@ -35,7 +35,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           file: ./vscoffline/vscsync/Dockerfile          
-          tags: lolinternet/vscsync:actions,lolinternet/vscsync:${SOURCE_TAG}
+          tags: lolinternet/vscsync:actions,lolinternet/vscsync:${{ steps.branch_name.outputs.SOURCE_TAG }}
           push: true
           
       - name: Sync - Build and push
@@ -43,5 +43,5 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           file: ./vscoffline/vscgallery/Dockerfile
-          tags: lolinternet/vscgallery:actions,lolinternet/vscgallery:${SOURCE_TAG}
+          tags: lolinternet/vscgallery:actions,lolinternet/vscgallery:${{ steps.branch_name.outputs.SOURCE_TAG }}
           push: true
