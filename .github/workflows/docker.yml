@@ -22,20 +22,17 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
-      - name: Branch name
-        id: branch_name
-        run: |
-          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
-          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
-          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
+
+      - name: Get version
+        id: get_version
+        uses: battila7/get-version-action@v2
           
       - name: Sync - Build and push
         id: docker_build_sync
         uses: docker/build-push-action@v2
         with:
           file: ./vscoffline/vscsync/Dockerfile          
-          tags: lolinternet/vscsync:actions,lolinternet/vscsync:${{ steps.branch_name.outputs.SOURCE_TAG }}
+          tags: lolinternet/vscsync:actions,lolinternet/vscsync:${{ steps.get_version.outputs.version-without-v }}
           push: true
           
       - name: Sync - Build and push
@@ -43,5 +40,5 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           file: ./vscoffline/vscgallery/Dockerfile
-          tags: lolinternet/vscgallery:actions,lolinternet/vscgallery:${{ steps.branch_name.outputs.SOURCE_TAG }}
+          tags: lolinternet/vscgallery:actions,lolinternet/vscgallery:${{ steps.get_version.outputs.version-without-v }}
           push: true
