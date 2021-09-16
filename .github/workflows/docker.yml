@@ -3,9 +3,7 @@ name: ci
 on:
   push:
     branches:
-      - 'master'
       - 'main'
-      - 'actions'
 
 jobs:
   docker:
