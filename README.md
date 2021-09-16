@@ -29,6 +29,7 @@ Possible ToDo List:
 * Add test cases.
 
 ## Changelog
+ * 1.0.16 - CORS support for gallery. Thanks @kenyon!
  * 1.0.15 - Improve extension stats handling.
  * 1.0.14 - Fixed insider builds being re-fetched.
  * 1.0.13 - Added initial support for extension version handling. Hopefully this resolves issue #4.
