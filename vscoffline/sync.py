@@ -202,7 +202,7 @@ class VSCExtensionDefinition(object):
     def _get_asset_types(self):
         if self.versions and len(self.versions) > 1:
             log.warning(f"_get_asset_types(). More than one version returned for {self.identity}. Unhandled.")
-            return None
+            return []
         assets = []
         for asset in self.versions[0]['files']:
            if 'assetType' in asset:
