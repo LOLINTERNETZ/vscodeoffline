@@ -168,18 +168,19 @@ class VSCGallery(object):
                 asset['source'] = asseturi + '/' + asset['assetType']
 
             # Map statistics for later lookup
+            stats = {
+                'averagerating': 0,
+                'install': 0,
+                'weightedRating': 0
+            }
             if 'statistics' not in extension or not extension['statistics']:
                 log.info(f'Statistics are missing from extension {name} in {extensiondir}, generating.')
-                extension['stats'] = {
-                    'averagerating': 0,
-                    'install': 0,
-                    'weightedRating': 0
-                }
             else:
-                statistics = {}
+                extension_statistics = {}
                 for statistic in extension['statistics']:
-                    statistics[statistic['statisticName']] = statistic['value']
-                extension['stats'] = statistics
+                    extension_statistics[statistic['statisticName']] = statistic['value']
+                stats.update(extension_statistics)
+            extension['stats'] = stats
             return extension
 
     def update_state_loop(self):
