@@ -168,18 +168,19 @@ class VSCGallery(object):
                 asset['source'] = asseturi + '/' + asset['assetType']
 
             # Map statistics for later lookup
+            stats = {
+                'averagerating': 0,
+                'install': 0,
+                'weightedRating': 0
+            }
             if 'statistics' not in extension or not extension['statistics']:
                 log.info(f'Statistics are missing from extension {name} in {extensiondir}, generating.')
-                extension['stats'] = {
-                    'averagerating': 0,
-                    'install': 0,
-                    'weightedRating': 0
-                }
             else:
-                statistics = {}
+                extension_statistics = {}
                 for statistic in extension['statistics']:
-                    statistics[statistic['statisticName']] = statistic['value']
-                extension['stats'] = statistics
+                    extension_statistics[statistic['statisticName']] = statistic['value']
+                stats.update(extension_statistics)
+            extension['stats'] = stats
             return extension
 
     def update_state_loop(self):
@@ -255,6 +256,9 @@ class VSCGallery(object):
             result.sort(key=lambda k: k['displayName'], reverse=rev)
 
     def _apply_criteria(self, criteria):
+        # `self.extensions` may be modified by the update thread while this
+        # function is executing so we need to operate on a copy
+        extensions = self.extensions.copy()
         result = []
 
         for crit in criteria:
@@ -269,18 +273,18 @@ class VSCGallery(object):
                 continue
 
             elif ft == vsc.FilterType.ExtensionId:
-                for name in self.extensions:
-                    if val == self.extensions[name]['extensionId']:
-                        result.append(self.extensions[name])
+                for name in extensions:
+                    if val == extensions[name]['extensionId']:
+                        result.append(extensions[name])
 
             elif ft == vsc.FilterType.Category:
                 log.info(f"Not implemented filter type {ft} for {val}")
                 continue
 
             elif ft == vsc.FilterType.ExtensionName:
-                for name in self.extensions:
+                for name in extensions:
                     if name.lower() == val:
-                        result.append(self.extensions[name])
+                        result.append(extensions[name])
 
             elif ft == vsc.FilterType.Target:
                 # Ignore the product, typically Visual Studio Code. If it's custom, then let it connect here
@@ -291,14 +295,14 @@ class VSCGallery(object):
                 continue
 
             elif ft == vsc.FilterType.SearchText:
-                for name in self.extensions:
+                for name in extensions:
                     # Search in extension name, display name and short description
                     if val in name.lower():
-                        result.append(self.extensions[name])
-                    elif 'displayName' in self.extensions[name] and val in self.extensions[name]['displayName'].lower():
-                        result.append(self.extensions[name])
-                    elif 'shortDescription' in self.extensions[name] and val in self.extensions[name]['shortDescription'].lower():
-                        result.append(self.extensions[name])
+                        result.append(extensions[name])
+                    elif 'displayName' in extensions[name] and val in extensions[name]['displayName'].lower():
+                        result.append(extensions[name])
+                    elif 'shortDescription' in extensions[name] and val in extensions[name]['shortDescription'].lower():
+                        result.append(extensions[name])
 
             elif ft == vsc.FilterType.ExcludeWithFlags:
                 # Typically this ignores Unpublished Flag (4096) extensions
@@ -310,7 +314,7 @@ class VSCGallery(object):
         # Handle popular / recommended
         if len(result) <= 0 and len(criteria) <= 2:
             log.info(f'Search criteria {criteria}')
-            result = [ext for ext in self.extensions.values() if 'recommended' in ext and ext['recommended']]
+            result = [ext for ext in extensions.values() if 'recommended' in ext and ext['recommended']]
 
         return result
 
