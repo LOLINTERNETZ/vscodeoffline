@@ -376,7 +376,21 @@ class VSCMarketplace(object):
             #log.debug(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
             query = self._query(filtertype, filtervalue, pageNumber, pageSize)
-            result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
+            result = None
+            for i in range(10):
+                if i > 0:
+                    log.info("Retrying pull page %d attempt %d." % (pageNumber, i+1))
+                try:
+                    result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
+                    if result:
+                        break
+                except requests.exceptions.ProxyError:
+                    log.info("ProxyError: Retrying.")
+                except requests.exceptions.ReadTimeout:
+                    log.info("ReadTimeout: Retrying.")
+            if not result:
+                log.info("Failed 10 attempts to query marketplace. Giving up.")
+                break
             jresult = result.json()
             count = count + pageSize
             if 'results' in jresult:
