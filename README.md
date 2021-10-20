@@ -29,6 +29,8 @@ Possible ToDo List:
 * Add test cases.
 
 ## Changelog
+ * 1.0.19 - Lots of really solid bug fixes. Thank you to @fullylegit! Resilience improvements when fetching from marketplace. Thanks @forky2 and @ebsan.
+ * 1.0.18 - Meta release to trigger CI. 
  * 1.0.17 - CORS support for gallery. Thanks @kenyon!
  * 1.0.16 - Support for saving sync logs to file. Thanks @ap0yuv!
  * 1.0.15 - Improve extension stats handling.
