@@ -388,8 +388,10 @@ class VSCMarketplace(object):
                     log.info("ProxyError: Retrying.")
                 except requests.exceptions.ReadTimeout:
                     log.info("ReadTimeout: Retrying.")
+                except requests.exceptions.ConnectionError:
+                    log.info("ConnectionError: Retrying.")
             if not result:
-                log.info("Failed 10 attempts to query marketplace. Giving up.")
+                log.info(f'Failed 10 attempts to query marketplace. Giving up searching for "{filtervalue}".')
                 break
             jresult = result.json()
             count = count + pageSize
