@@ -11,12 +11,13 @@ services:
       # Enable for dev
       - ./vscoffline/:/opt/vscoffline/:ro
       - ./artifacts/:/artifacts/
+      - ./logs/:/logs/
     environment:
-      - SYNCARGS=--sync
+      # - SYNCARGS=--sync
       # Enable to sync all extensions
       #- SYNCARGS=--syncall
       # Enable a logfile
-      #- SYNCARGS=--sync --logfile /logs/sync.log
+      - SYNCARGS=--syncall --logfile /logs/sync.log --frequency 1w
 
   vscgallery:
     image: lolinternet/vscgallery:latest
@@ -30,7 +31,7 @@ services:
       # Enable for custom SSL certs
       #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs
       # Enable to store logfiles in its own folder
-      # ./logs/:/logs/
+      - ./logs/:/logs/
     ports:
       - 443:443
     environment:

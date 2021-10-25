@@ -586,7 +586,7 @@ if __name__ == '__main__':
             for identity in extensions:
                 if count % 100 == 0:
                     log.info(f'Progress {count}/{len(extensions)} ({count/len(extensions)*100:.1f}%)')
-                if identity.version():
+                if extensions[identity].version():
                     extensions[identity].download_assets(config.artifactdir_extensions)
                     bonus = extensions[identity].process_embedded_extensions(config.artifactdir_extensions, mp) + bonus
                     extensions[identity].save_state(config.artifactdir_extensions)
