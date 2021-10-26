@@ -1,10 +1,11 @@
-version: '3'
+version: "3"
 services:
-
   vscsync:
     image: lolinternet/vscsync:latest
     build:
-	@@ -10,28 +9,29 @@ services:
+      context: ./
+      dockerfile: ./vscoffline/vscsync/Dockerfile
+    dns:
       - 1.1.1.1
     volumes:
       # Enable for dev
@@ -21,7 +22,7 @@ services:
     image: lolinternet/vscgallery:latest
     build:
       context: ./
-      dockerfile: ./vscoffline/vscgallery/Dockerfile    
+      dockerfile: ./vscoffline/vscgallery/Dockerfile
     volumes:
       # Enable for dev
       #- ./vscoffline/:/opt/vscoffline/:ro # Enable for dev
@@ -33,3 +34,4 @@ services:
     ports:
       - 443:443
     environment:
+      - BIND=0.0.0.0:443
