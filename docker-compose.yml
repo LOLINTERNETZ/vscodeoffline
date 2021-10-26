@@ -1,5 +1,6 @@
-version: "3"
+version: '3'
 services:
+
   vscsync:
     image: lolinternet/vscsync:latest
     build:
@@ -22,7 +23,7 @@ services:
     image: lolinternet/vscgallery:latest
     build:
       context: ./
-      dockerfile: ./vscoffline/vscgallery/Dockerfile
+      dockerfile: ./vscoffline/vscgallery/Dockerfile    
     volumes:
       # Enable for dev
       #- ./vscoffline/:/opt/vscoffline/:ro # Enable for dev
