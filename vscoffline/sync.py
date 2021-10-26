@@ -595,9 +595,10 @@ if __name__ == '__main__':
                 count = count + 1
 
             for bonusextension in bonus:
-                log.debug(f'Processing Embedded Extension: {bonusextension}')
-                bonusextension.download_assets(config.artifactdir_extensions)                
-                bonusextension.save_state(config.artifactdir_extensions)
+                if bonusextension.version():
+                    log.debug(f'Processing Embedded Extension: {bonusextension}')
+                    bonusextension.download_assets(config.artifactdir_extensions)                
+                    bonusextension.save_state(config.artifactdir_extensions)
                 
         log.info('Complete')
         VSCUpdates.signal_updated(os.path.abspath(config.artifactdir))
