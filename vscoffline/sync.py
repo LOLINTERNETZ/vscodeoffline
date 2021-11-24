@@ -177,8 +177,7 @@ class VSCExtensionDefinition(object):
 
     def version(self):
         if self.versions and len(self.versions) > 1:
-            log.warning(f"version(). More than one version returned for {self.identity}. Unhandled.")
-            return None
+            return ";".join(list(map(lambda x: x['version'], self.versions)))
         return self.versions[0]['version']
     
     def set_recommended(self):
@@ -203,9 +202,6 @@ class VSCExtensionDefinition(object):
                     dest.write(result.content)
     
     def _get_asset_types(self):
-        # if self.versions and len(self.versions) > 1:
-        #     log.warning(f"_get_asset_types(). More than one version returned for {self.identity}. Unhandled.")
-        #     return []
         assets = []
         for version in self.versions:
             for asset in version['files']:
@@ -214,9 +210,6 @@ class VSCExtensionDefinition(object):
         return assets
 
     def _get_asset_source(self, name, version):
-        # if self.versions and len(self.versions) > 1:
-        #     log.warning(f"_get_asset_source(). More than one version returned for {self.identity}. Unhandled.")
-        #     return None
         for ver in self.versions:
             if ver["version"] == version:
                 for asset in ver['files']:
@@ -388,7 +381,6 @@ class VSCMarketplace(object):
                     log.info("Retrying pull page %d attempt %d." % (pageNumber, i+1))
                 try:
                     result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
-                    # print(result.json())
                     if result:
                         break
                 except requests.exceptions.ProxyError:
@@ -509,9 +501,9 @@ if __name__ == '__main__':
     config.artifactdir_extensions = os.path.join(os.path.abspath(config.artifactdir), 'extensions')
 
     if config.sync or config.syncall:
-        # config.checkbinaries = True
+        config.checkbinaries = True
         config.checkextensions = True
-        # config.updatebinaries = True
+        config.updatebinaries = True
         config.updateextensions = True
         config.updatemalicious = True
         config.checkspecified = True
