@@ -146,20 +146,21 @@ class VSCExtensionDefinition(object):
     def download_assets(self, destination):
         availableassets = self._get_asset_types()
         for availableasset in availableassets:
-            self._download_asset(destination, availableasset)        
+            self._download_assets(destination, availableasset)        
 
     def process_embedded_extensions(self, destination, mp):
         """
         Check an extension's Manifest for an extension pack (e.g. more extensions to download)
         """
         bonusextensions = []
-        manifestpath = os.path.join(destination, self.identity, self.version(), 'Microsoft.VisualStudio.Code.Manifest')
-        manifest = vsc.Utility.load_json(manifestpath)    
-        if manifest and 'extensionPack' in manifest:
-            for extname in manifest['extensionPack']:
-                bonusextension = mp.search_by_extension_name(extname)                    
-                if bonusextension:
-                    bonusextensions.append(bonusextension)
+        for version in self.versions:
+            manifestpath = os.path.join(destination, self.identity, version["version"], 'Microsoft.VisualStudio.Code.Manifest')
+            manifest = vsc.Utility.load_json(manifestpath)    
+            if manifest and 'extensionPack' in manifest:
+                for extname in manifest['extensionPack']:
+                    bonusextension = mp.search_by_extension_name(extname)                    
+                    if bonusextension:
+                        bonusextensions.append(bonusextension)
         return bonusextensions
 
     def save_state(self, destination):
@@ -170,52 +171,50 @@ class VSCExtensionDefinition(object):
         with open(os.path.join(destination, 'latest.json'), 'w') as outfile:
             json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
         # Save in the version folder
-        with open(os.path.join(destination, self.version(), 'extension.json'), 'w') as outfile:
-            json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
+        for version in self.versions:
+            with open(os.path.join(destination, version["version"], 'extension.json'), 'w') as outfile:
+                json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
 
     def version(self):
         if self.versions and len(self.versions) > 1:
-            log.warning(f"version(). More than one version returned for {self.identity}. Unhandled.")
-            return None
+            return ";".join(list(map(lambda x: x['version'], self.versions)))
         return self.versions[0]['version']
     
     def set_recommended(self):
         self.recommended = True
 
-    def _download_asset(self, destination, asset):
+    def _download_assets(self, destination, asset):
         if not self.extensionId:
             log.warning('download_asset() cannot download update if the update definition has not been downloaded')
             return
-        destination = os.path.join(destination, self.identity, self.version())
-        url = self._get_asset_source(asset)
-        if not url:
-            log.warning('download_asset() cannot download update as asset url is missing')
-            return
-        destfile = os.path.join(destination, f'{asset}')
-        create_tree(os.path.abspath(os.sep), (destfile,))
-        if not os.path.exists(destfile):
-            log.debug(f'Downloading {self.identity} {asset} to {destfile}')
-            result = self.session.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
-            with open(destfile, 'wb') as dest:
-                dest.write(result.content)
+        for version in self.versions:
+            ver_destination = os.path.join(destination, self.identity, version["version"])
+            url = self._get_asset_source(asset, version["version"])
+            if not url:
+                log.warning('download_asset() cannot download update as asset url is missing')
+                return
+            destfile = os.path.join(ver_destination, f'{asset}')
+            create_tree(os.path.abspath(os.sep), (destfile,))
+            if not os.path.exists(destfile):
+                log.debug(f'Downloading {self.identity} {asset} to {destfile}')
+                result = self.session.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
+                with open(destfile, 'wb') as dest:
+                    dest.write(result.content)
     
     def _get_asset_types(self):
-        if self.versions and len(self.versions) > 1:
-            log.warning(f"_get_asset_types(). More than one version returned for {self.identity}. Unhandled.")
-            return []
         assets = []
-        for asset in self.versions[0]['files']:
-           if 'assetType' in asset:
-               assets.append(asset['assetType'])
+        for version in self.versions:
+            for asset in version['files']:
+                if 'assetType' in asset:
+                    assets.append(asset['assetType'])
         return assets
 
-    def _get_asset_source(self, name):
-        if self.versions and len(self.versions) > 1:
-            log.warning(f"_get_asset_source(). More than one version returned for {self.identity}. Unhandled.")
-            return None
-        for asset in self.versions[0]['files']:
-           if asset['assetType'] == name:
-               return asset['source']
+    def _get_asset_source(self, name, version):
+        for ver in self.versions:
+            if ver["version"] == version:
+                for asset in ver['files']:
+                    if asset['assetType'] == name:
+                        return asset['source']
         return False
 
     def __repr__(self):
