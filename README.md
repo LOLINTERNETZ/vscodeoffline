@@ -29,6 +29,7 @@ Possible ToDo List:
 * Add test cases.
 
 ## Changelog
+ * 1.0.20 - Fixed an issue when downloading multiple versions of extensions. Thanks @forky2!
  * 1.0.19 - Lots of really solid bug fixes. Thank you to @fullylegit! Resilience improvements when fetching from marketplace. Thanks @forky2 and @ebsan.
  * 1.0.18 - Meta release to trigger CI. 
  * 1.0.17 - CORS support for gallery. Thanks @kenyon!
