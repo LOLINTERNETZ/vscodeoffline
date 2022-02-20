@@ -261,7 +261,7 @@ class VSCMarketplace(object):
         self.insider = insider
 
     def get_recommendations(self, destination):
-        recommendations = self.search_top_n(n=200)
+        recommendations = self.search_top_n(n=2000)
         recommended_old = self.get_recommendations_old(destination)
 
         for extension in recommendations:
