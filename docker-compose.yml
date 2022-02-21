@@ -13,7 +13,7 @@ services:
       #- ./vscoffline/:/opt/vscoffline/:ro
       - ./artifacts/:/artifacts/
     environment:
-      - SYNCARGS=--sync
+      - SYNCARGS=--sync --skip-binaries
       # Enable to sync all extensions
       #- SYNCARGS=--syncall
       # Enable a logfile
