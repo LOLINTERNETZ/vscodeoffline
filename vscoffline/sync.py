@@ -445,7 +445,7 @@ class VSCMarketplace(object):
         return vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
 
-    def _headers(self, version='1.34.0'):
+    def _headers(self, version='1.59.1'):
         if self.insider:
             insider = '-insider'
         else:
