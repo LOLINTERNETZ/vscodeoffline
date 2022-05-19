@@ -1,4 +1,5 @@
 import os, sys, argparse, requests, pathlib, hashlib, uuid, logzero, logging, json, time, datetime
+from requests.adapters import HTTPAdapter, Retry
 from logzero import logger as log
 from pytimeparse.timeparse import timeparse
 import vsc
@@ -256,6 +257,8 @@ class VSCUpdates(object):
 class VSCMarketplace(object):
    
     session = requests.session()
+    retries = Retry(total=3, backoff_factor=0.1)
+    session.mount('https://', HTTPAdapter(max_retries=retries))
 
     def __init__(self, insider):
         self.insider = insider
@@ -445,7 +448,7 @@ class VSCMarketplace(object):
         return vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
 
-    def _headers(self, version='1.59.1'):
+    def _headers(self, version='1.67.0'):
         if self.insider:
             insider = '-insider'
         else:

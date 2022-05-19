@@ -19,7 +19,7 @@ ARTIFACTS_EXTENSIONS = '/artifacts/extensions'
 ARTIFACT_RECOMMENDATION = '/artifacts/recommendations.json'
 ARTIFACT_MALICIOUS = '/artifacts/malicious.json'
 
-TIMEOUT = 12
+TIMEOUT = 16
 
 class QueryFlags(IntFlag):
     __no_flags_name__ = 'NoneDefined'
