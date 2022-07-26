@@ -372,7 +372,7 @@ class VSCMarketplace(object):
         total = 0
         count = 0
         while count <= total:
-            #log.debug(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
+            log.info(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
             query = self._query(filtertype, filtervalue, pageNumber, pageSize)
             result = None
@@ -380,6 +380,7 @@ class VSCMarketplace(object):
                 if i > 0:
                     log.info("Retrying pull page %d attempt %d." % (pageNumber, i+1))
                 try:
+                    # log.info(f"Headers: {self._headers()}")
                     result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
                     if result:
                         break
@@ -409,11 +410,14 @@ class VSCMarketplace(object):
         return list(extensions.values())
 
     def _query(self, filtertype, filtervalue, pageNumber, pageSize):
-        return {
+        payload = {
             'assetTypes': [],
             'filters': [self._query_filter(filtertype, filtervalue, pageNumber, pageSize)],
             'flags': int(self._query_flags())
         }
+        log.info("Query Payload")
+        log.info(payload)
+        return payload
 
     def _query_filter(self, filtertype, filtervalue, pageNumber, pageSize):
         result = {
@@ -445,6 +449,7 @@ class VSCMarketplace(object):
         return vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
 
+    # TODO: Update version to be configurable
     def _headers(self, version='1.34.0'):
         if self.insider:
             insider = '-insider'
@@ -504,7 +509,7 @@ if __name__ == '__main__':
         config.checkbinaries = True
         config.checkextensions = True
         config.updatebinaries = True
-        config.updateextensions = True
+        config.updateextensions = False
         config.updatemalicious = True
         config.checkspecified = True
         if not config.frequency:
@@ -578,6 +583,9 @@ if __name__ == '__main__':
             log.info('Syncing VS Code Malicious Extension List')
             malicious = mp.get_malicious(os.path.abspath(config.artifactdir), extensions)
 
+        log.info(f'Extensions: {len(extensions)}')
+        # extensions is populated with all the different extensions from the command line arguments. By this point
+        # it could be a lot of extensions, 5000+
         if config.updateextensions:
             log.info(f'Checking and Downloading Updates for {len(extensions)} Extensions')
             count = 0

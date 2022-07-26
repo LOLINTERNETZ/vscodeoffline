@@ -1,6 +1,5 @@
-version: '3'
+version: "3"
 services:
-
   vscsync:
     image: lolinternet/vscsync:latest
     build:
@@ -12,27 +11,29 @@ services:
       # Enable for dev
       #- ./vscoffline/:/opt/vscoffline/:ro
       - ./artifacts/:/artifacts/
+      - ./logs/:/logs/
     environment:
-      - SYNCARGS=--sync
+      # - SYNCARGS=--sync
+      - SYNCARGS=--sync --skip-binaries --logfile /logs/sync.log
       # Enable to sync all extensions
       #- SYNCARGS=--syncall
       # Enable a logfile
       #- SYNCARGS=--sync --logfile /logs/sync.log
 
-  vscgallery:
-    image: lolinternet/vscgallery:latest
-    build:
-      context: ./
-      dockerfile: ./vscoffline/vscgallery/Dockerfile    
-    volumes:
-      # Enable for dev
-      #- ./vscoffline/:/opt/vscoffline/:ro # Enable for dev
-      - ./artifacts/:/artifacts/
-      # Enable for custom SSL certs
-      #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs
-      # Enable to store logfiles in its own folder
-      # ./logs/:/logs/
-    ports:
-      - 443:443
-    environment:
-      - BIND=0.0.0.0:443
+  # vscgallery:
+  #   image: lolinternet/vscgallery:latest
+  #   build:
+  #     context: ./
+  #     dockerfile: ./vscoffline/vscgallery/Dockerfile
+  #   volumes:
+  #     # Enable for dev
+  #     #- ./vscoffline/:/opt/vscoffline/:ro # Enable for dev
+  #     - ./artifacts/:/artifacts/
+  #     # Enable for custom SSL certs
+  #     #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs
+  #     # Enable to store logfiles in its own folder
+  #     # ./logs/:/logs/
+  #   ports:
+  #     - 443:443
+  #   environment:
+  #     - BIND=0.0.0.0:443

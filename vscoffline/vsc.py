@@ -23,18 +23,18 @@ TIMEOUT = 12
 
 class QueryFlags(IntFlag):
     __no_flags_name__ = 'NoneDefined'
-    NoneDefined = 0x0
-    IncludeVersions = 0x1
-    IncludeFiles = 0x2
-    IncludeCategoryAndTags = 0x4
-    IncludeSharedAccounts = 0x8
-    IncludeVersionProperties = 0x10
-    ExcludeNonValidated = 0x20
-    IncludeInstallationTargets = 0x40
-    IncludeAssetUri = 0x80
-    IncludeStatistics = 0x100
-    IncludeLatestVersionOnly = 0x200
-    Unpublished = 0x1000
+    NoneDefined = 0x0 # 0
+    IncludeVersions = 0x1 # 1
+    IncludeFiles = 0x2 # 2
+    IncludeCategoryAndTags = 0x4 # 4
+    IncludeSharedAccounts = 0x8 # 8
+    IncludeVersionProperties = 0x10 # 16
+    ExcludeNonValidated = 0x20 # 32
+    IncludeInstallationTargets = 0x40 # 64
+    IncludeAssetUri = 0x80 # 128
+    IncludeStatistics = 0x100 # 256
+    IncludeLatestVersionOnly = 0x200 # 512
+    Unpublished = 0x1000 # 4096
 
 class FilterType(IntFlag):
     __no_flags_name__ = 'Target'
