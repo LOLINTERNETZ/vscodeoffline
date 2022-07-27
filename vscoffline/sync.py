@@ -1,13 +1,14 @@
 import os, sys, argparse, requests, pathlib, hashlib, uuid, logzero, logging, json, time, datetime
+from platform import release
 from logzero import logger as log
 from pytimeparse.timeparse import timeparse
 import vsc
 from distutils.dir_util import create_tree
 
+from vscoffline.vsc import QueryFlags
+
 
 class VSCUpdateDefinition(object):
-
-    session = requests.session()
 
     def __init__(self, platform=None, architecture=None, buildtype=None, quality=None,
             updateurl=None, name=None, version=None, productVersion=None, 
@@ -53,7 +54,7 @@ class VSCUpdateDefinition(object):
         url = vsc.URL_BINUPDATES + f"{self.identity}/{self.quality}/{old_commit_id}"
         
         log.debug(f'Update url {url}')
-        result = self.session.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
+        result = requests.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
         self.checkedForUpdate = True
 
         if result.status_code == 204:
@@ -101,7 +102,7 @@ class VSCUpdateDefinition(object):
             log.debug(f'Previously downloaded {self}')
         else:
             log.info(f'Downloading {self} to {destfile}')
-            result = self.session.get(self.updateurl, allow_redirects=True, timeout=vsc.TIMEOUT)
+            result = requests.get(self.updateurl, allow_redirects=True, timeout=vsc.TIMEOUT)
             open(destfile, 'wb').write(result.content)
 
             if not vsc.Utility.hash_file_and_check(destfile, self.sha256hash):
@@ -131,8 +132,6 @@ class VSCUpdateDefinition(object):
 
 class VSCExtensionDefinition(object):
     
-    session = requests.session()
-
     def __init__(self, identity, raw=None):
         self.identity = identity
         self.extensionId = None
@@ -175,6 +174,14 @@ class VSCExtensionDefinition(object):
             with open(os.path.join(destination, version["version"], 'extension.json'), 'w') as outfile:
                 json.dump(self, outfile, cls=vsc.MagicJsonEncoder, indent=4)
 
+    def isprerelease(self):
+        prerelease = False
+        if "properties" in self.versions[0].keys():
+            for property in self.versions[0]["properties"]:
+                if property["key"] == "Microsoft.VisualStudio.Code.PreRelease" and property["value"] == "true":
+                    prerelease = True
+        return prerelease
+
     def version(self):
         if self.versions and len(self.versions) > 1:
             return ";".join(list(map(lambda x: x['version'], self.versions)))
@@ -197,7 +204,7 @@ class VSCExtensionDefinition(object):
             create_tree(os.path.abspath(os.sep), (destfile,))
             if not os.path.exists(destfile):
                 log.debug(f'Downloading {self.identity} {asset} to {destfile}')
-                result = self.session.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
+                result = requests.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
                 with open(destfile, 'wb') as dest:
                     dest.write(result.content)
     
@@ -255,13 +262,28 @@ class VSCUpdates(object):
 
 class VSCMarketplace(object):
    
-    session = requests.session()
-
     def __init__(self, insider):
         self.insider = insider
 
     def get_recommendations(self, destination):
-        recommendations = self.search_top_n(n=200)
+        recommendations: list[VSCExtensionDefinition] = self.search_top_n(n=200)
+
+        for recommendation in recommendations:
+            if recommendation.isprerelease:
+                log.warn(f'{recommendation.identity} is a PreRelease version NEW...')
+            # log.info(f'Identity: {recommendation.identity} --- Versions: {recommendation.versions}')
+            if "properties" in recommendation.versions[0].keys():
+                # if "Microsoft.VisualStudio.Code.PreRelease" in recommendation.versions[0]["properties"].keys():
+                #     log.info(f'{recommendation.identity} is a PreRelease version...')
+                for property in recommendation.versions[0]["properties"]:
+                    # log.info(f'Properties: {property}')
+                    if property["key"] == "Microsoft.VisualStudio.Code.PreRelease" and property["value"] == "true":
+                        log.warn(f'{recommendation.identity} is a PreRelease version...')
+            #             if property.value == True:
+            #                 log.info(f'PreRelease Extension found: {recommendation.identity}')
+                # log.info("Found recommendations...")
+                # log.info(json.dumps(recommendation.__dict__))
+
         recommended_old = self.get_recommendations_old(destination)
 
         for extension in recommendations:
@@ -278,11 +300,15 @@ class VSCMarketplace(object):
         
         for recommendation in recommendations:
             recommendation.set_recommended()
+            if recommendation.isprerelease:
+                extension = self.search_release_by_extension_id(recommendation.extensionId) 
+                if extension:
+                    recommendations = list(map(lambda x: x.replace(recommendation, extension)))
 
         return recommendations
 
     def get_recommendations_old(self, destination):
-        result = self.session.get(vsc.URL_RECOMMENDATIONS, allow_redirects=True, timeout=vsc.TIMEOUT)
+        result = requests.get(vsc.URL_RECOMMENDATIONS, allow_redirects=True, timeout=vsc.TIMEOUT)
         if result.status_code != 200:            
             log.warning(f"get_recommendations failed accessing url {vsc.URL_RECOMMENDATIONS}, unhandled status code {result.status_code}")
             return False
@@ -300,7 +326,7 @@ class VSCMarketplace(object):
         return packages
 
     def get_malicious(self, destination, extensions=None):
-        result = self.session.get(vsc.URL_MALICIOUS, allow_redirects=True, timeout=vsc.TIMEOUT)
+        result = requests.get(vsc.URL_MALICIOUS, allow_redirects=True, timeout=vsc.TIMEOUT)
         if result.status_code != 200:            
             log.warning(f"get_malicious failed accessing url {vsc.URL_MALICIOUS}, unhandled status code {result.status_code}")
             return False
@@ -367,21 +393,32 @@ class VSCMarketplace(object):
             #log.debug(f"search_by_extension_name failed {extensionname} got {result}")
             return False
 
-    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance):
+    # TODO Create a function to get the latest release version of extension
+    def search_release_by_extension_id(self, extensionid):
+        releaseQueryFlags = vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
+            vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeVersions
+        result = self._query_marketplace(vsc.FilterType.ExtensionId, extensionid, releaseQueryFlags)
+        if result and len(result) == 1:
+            return result[0]
+        else:
+            log.warning(f"search_by_extension_id failed {extensionid}")
+            return False
+
+    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags = 0) -> list[VSCExtensionDefinition] :
         extensions = {}
         total = 0
         count = 0
         while count <= total:
-            log.info(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
+            # log.info(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
-            query = self._query(filtertype, filtervalue, pageNumber, pageSize)
+            query = self._query(filtertype, filtervalue, pageNumber, pageSize, queryFlags)
             result = None
             for i in range(10):
                 if i > 0:
                     log.info("Retrying pull page %d attempt %d." % (pageNumber, i+1))
                 try:
                     # log.info(f"Headers: {self._headers()}")
-                    result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
+                    result = requests.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
                     if result:
                         break
                 except requests.exceptions.ProxyError:
@@ -409,14 +446,16 @@ class VSCMarketplace(object):
 
         return list(extensions.values())
 
-    def _query(self, filtertype, filtervalue, pageNumber, pageSize):
+    def _query(self, filtertype, filtervalue, pageNumber, pageSize, queryFlags = 0):
+        if queryFlags == 0:
+            queryFlags = self._query_flags()
         payload = {
             'assetTypes': [],
             'filters': [self._query_filter(filtertype, filtervalue, pageNumber, pageSize)],
-            'flags': int(self._query_flags())
+            'flags': int(queryFlags)
         }
-        log.info("Query Payload")
-        log.info(payload)
+        # log.info("Query Payload")
+        # log.info(payload)
         return payload
 
     def _query_filter(self, filtertype, filtervalue, pageNumber, pageSize):
@@ -483,6 +522,7 @@ if __name__ == '__main__':
     parser.add_argument('--check-specified-extensions', dest='checkspecified', action='store_true', help='Check for extensions in <artifacts>/specified.json')    
     parser.add_argument('--extension-name', dest='extensionname', help='Find a specific extension by name')
     parser.add_argument('--extension-search', dest='extensionsearch', help='Search for a set of extensions')    
+    parser.add_argument('--prerelease-extensions', dest='prerelease', action='store_true', help='Download prerelease extensions. Defaults to false.')
     parser.add_argument('--update-binaries', dest='updatebinaries', action='store_true', help='Download binaries')
     parser.add_argument('--update-extensions', dest='updateextensions', action='store_true', help='Download extensions')
     parser.add_argument('--update-malicious-extensions', dest='updatemalicious', action='store_true', help='Update the malicious extension list')
@@ -529,7 +569,7 @@ if __name__ == '__main__':
     if config.frequency:
         config.frequency = timeparse(config.frequency)
     
-    while True:        
+    while True:
         versions = []
         extensions = {}
         mp = VSCMarketplace(config.checkinsider)
