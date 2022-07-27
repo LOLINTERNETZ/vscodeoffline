@@ -1,11 +1,11 @@
+from dataclasses import dataclass
 import os, sys, argparse, requests, pathlib, hashlib, uuid, logzero, logging, json, time, datetime
+from typing import List
 from platform import release
 from logzero import logger as log
 from pytimeparse.timeparse import timeparse
 import vsc
 from distutils.dir_util import create_tree
-
-from vscoffline.vsc import QueryFlags
 
 
 class VSCUpdateDefinition(object):
@@ -130,17 +130,111 @@ class VSCUpdateDefinition(object):
             strs += f" - Latest version not available"
         return strs
 
+@dataclass
+class File:
+    assetType: str
+    source: str
+
+    @staticmethod
+    def from_dict(obj) -> 'File':
+        _assetType = str(obj.get("assetType"))
+        _source = str(obj.get("source"))
+        return File(_assetType, _source)
+
+@dataclass
+class Property:
+    key: str
+    value: str
+
+    @staticmethod
+    def from_dict(obj) -> 'Property':
+        _key = str(obj.get("key"))
+        _value = str(obj.get("value"))
+        return Property(_key, _value)
+
+@dataclass
+class VSCExtensionVersionDefinition:
+
+    # def __init__(self, raw=None):
+    #     self.version = None
+    #     self.flags = None
+    #     self.lastUpdate = None
+        
+    #     # files: List[File]
+    #     self.files = None
+        
+    #     # properties: List[Property]
+    #     self.properties = None
+    #     self.assetUri = None
+    #     self.fallbackAssetUri = None
+
+    #     # log.debug(f'Version: {raw.version}')
+    #     if raw:
+    #         log.debug(raw)
+    #         self.version = raw['version']
+    #         self.flags = raw["flags"]
+    #         self.lastUpdate = raw["lastUpdated"]
+            
+    #         # files: List[File]
+    #         self.files = raw["files"]
+            
+    #         # properties: List[Property]
+    #         self.properties = raw["properties"]
+    #         self.assetUri = raw["assetUri"]
+    #         self.fallbackAssetUri = raw["fallbackAssetUri"]
+
+    version: str
+    flags: str
+    lastUpdated: str
+    files: List[File]
+    properties: List[Property]
+    assetUri: str
+    fallbackAssetUri: str
+
+    @staticmethod
+    def from_dict(obj) -> 'VSCExtensionVersionDefinition':     
+        _version = str(obj.get("version"))
+        _flags = str(obj.get("flags"))
+        _lastUpdated = str(obj.get("lastUpdated"))
+        _files = [File.from_dict(y) for y in obj.get("files")]
+        _properties = [Property.from_dict(y) for y in obj.get("properties")] if obj.get("properties") else [] # older versions do not have properties so we need to set to empty array
+        _assetUri = str(obj.get("assetUri"))
+        _fallbackAssetUri = str(obj.get("fallbackAssetUri"))
+        return VSCExtensionVersionDefinition(_version, _flags, _lastUpdated, _files, _properties, _assetUri, _fallbackAssetUri)
+
+    def isprerelease(self):        
+        prerelease = False
+        for property in self.properties:
+            # if property["key"] == "Microsoft.VisualStudio.Code.PreRelease" and property["value"] == "true":
+            if property.key == "Microsoft.VisualStudio.Code.PreRelease" and property.value == "true":
+                prerelease = True
+        return prerelease
+    
+    def __repr__(self):
+        strs = f"<{self.__class__.__name__}> {self.version} ({self.lastUpdate}) - Version: {self.version}"
+        return strs
+
 class VSCExtensionDefinition(object):
     
     def __init__(self, identity, raw=None):
         self.identity = identity
         self.extensionId = None
         self.recommended = False
-        self.versions = []
+        self.versions: List[VSCExtensionVersionDefinition] = []
         if raw:
             self.__dict__.update(raw)            
             if 'extensionId' in raw:
                 self.extensionId = raw['extensionId']
+            # if 'versions' in raw:
+            #     for rawVersion in raw['versions']:
+            #         self.versions.append(rawVersion)
+            #         # log.debug("RAW:")
+            #         # log.debug(raw['versions'])
+            #         # log.debug(rawVersion)
+            #         # log.debug(rawVersion["version"])
+            #         # version = VSCExtensionVersionDefinition(raw=rawVersion)
+            #         # self.versions.append(version)
+            #     log.debug(f'*** This now has {len(self.versions)} versions...')
 
     def download_assets(self, destination):
         availableassets = self._get_asset_types()
@@ -181,6 +275,13 @@ class VSCExtensionDefinition(object):
                 if property["key"] == "Microsoft.VisualStudio.Code.PreRelease" and property["value"] == "true":
                     prerelease = True
         return prerelease
+
+    def get_latest_prerelease_version(self):
+        if self.versions and len(self.versions) > 1:
+            filtered = list(filter(lambda x: VSCExtensionVersionDefinition.from_dict(x).isprerelease() == False, self.versions))
+            filtered.sort(reverse=True, key=lambda x: x["lastUpdated"])
+            return filtered[0]
+        return self.versions[0]
 
     def version(self):
         if self.versions and len(self.versions) > 1:
@@ -262,28 +363,12 @@ class VSCUpdates(object):
 
 class VSCMarketplace(object):
    
-    def __init__(self, insider):
+    def __init__(self, insider, prerelease):
         self.insider = insider
+        self.prerelease = prerelease
 
     def get_recommendations(self, destination):
-        recommendations: list[VSCExtensionDefinition] = self.search_top_n(n=200)
-
-        for recommendation in recommendations:
-            if recommendation.isprerelease:
-                log.warn(f'{recommendation.identity} is a PreRelease version NEW...')
-            # log.info(f'Identity: {recommendation.identity} --- Versions: {recommendation.versions}')
-            if "properties" in recommendation.versions[0].keys():
-                # if "Microsoft.VisualStudio.Code.PreRelease" in recommendation.versions[0]["properties"].keys():
-                #     log.info(f'{recommendation.identity} is a PreRelease version...')
-                for property in recommendation.versions[0]["properties"]:
-                    # log.info(f'Properties: {property}')
-                    if property["key"] == "Microsoft.VisualStudio.Code.PreRelease" and property["value"] == "true":
-                        log.warn(f'{recommendation.identity} is a PreRelease version...')
-            #             if property.value == True:
-            #                 log.info(f'PreRelease Extension found: {recommendation.identity}')
-                # log.info("Found recommendations...")
-                # log.info(json.dumps(recommendation.__dict__))
-
+        recommendations: list[VSCExtensionDefinition] = self.search_top_n(n=10)
         recommended_old = self.get_recommendations_old(destination)
 
         for extension in recommendations:
@@ -298,13 +383,25 @@ class VSCMarketplace(object):
             else:
                 log.debug(f'get_recommendations failed finding a recommended extension by name for {packagename}. This extension has likely been removed.')
         
+        log.warning(f'*** Searching through {len(recommendations)} recommendations for prerelease versions')
+        prereleasecount = 0
         for recommendation in recommendations:
             recommendation.set_recommended()
-            if recommendation.isprerelease:
+            #  If the found extension is a prerelease version search for the next available release version
+            if not self.prerelease and recommendation.isprerelease():
+                # log.debug(f'*** Prerelease: {recommendation.__dict__}')
+                prereleasecount += 1
                 extension = self.search_release_by_extension_id(recommendation.extensionId) 
                 if extension:
-                    recommendations = list(map(lambda x: x.replace(recommendation, extension)))
+                    recommendation.versions = list(extension.get_latest_prerelease_version())
+                    # log.debug(f'*** Extension Version: {extension.versions}')                    
+                    # log.debug(f'*** OG Version: {recommendation.versions}')
+                    # break
+                    ## search for the release version
+                    ## replace the recommendation.version with the release version
+                    # recommendations = list(map(lambda x: x.replace(recommendation, extension), 1))
 
+        log.warning(f'*** Found {prereleasecount}/{len(recommendations)} prerelease versions')
         return recommendations
 
     def get_recommendations_old(self, destination):
@@ -375,6 +472,7 @@ class VSCMarketplace(object):
         return self._query_marketplace(vsc.FilterType.SearchText, searchtext)
     
     def search_top_n(self, n=200):
+        log.warn(f'Searching for top {n} extensions...')
         return self._query_marketplace(vsc.FilterType.SearchText, '', limit=n, sortOrder=vsc.SortOrder.Descending, sortBy=vsc.SortBy.InstallCount)
 
     def search_by_extension_id(self, extensionid):
@@ -395,16 +493,18 @@ class VSCMarketplace(object):
 
     # TODO Create a function to get the latest release version of extension
     def search_release_by_extension_id(self, extensionid):
+        log.warning(f'Searching for release candidate by extensionId: {extensionid}')
         releaseQueryFlags = vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeVersions
-        result = self._query_marketplace(vsc.FilterType.ExtensionId, extensionid, releaseQueryFlags)
+        log.debug(f'RELEASE QUERY FLAGS: {releaseQueryFlags}')
+        result = self._query_marketplace(vsc.FilterType.ExtensionId, extensionid, queryFlags=releaseQueryFlags)
         if result and len(result) == 1:
             return result[0]
         else:
             log.warning(f"search_by_extension_id failed {extensionid}")
             return False
 
-    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags = 0) -> list[VSCExtensionDefinition] :
+    def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags=0):
         extensions = {}
         total = 0
         count = 0
@@ -412,6 +512,7 @@ class VSCMarketplace(object):
             # log.info(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
             query = self._query(filtertype, filtervalue, pageNumber, pageSize, queryFlags)
+            log.debug(f'Query: {query}')
             result = None
             for i in range(10):
                 if i > 0:
@@ -549,7 +650,7 @@ if __name__ == '__main__':
         config.checkbinaries = True
         config.checkextensions = True
         config.updatebinaries = True
-        config.updateextensions = False
+        config.updateextensions = True
         config.updatemalicious = True
         config.checkspecified = True
         if not config.frequency:
@@ -572,7 +673,7 @@ if __name__ == '__main__':
     while True:
         versions = []
         extensions = {}
-        mp = VSCMarketplace(config.checkinsider)
+        mp = VSCMarketplace(config.checkinsider, config.prerelease)
 
         if config.checkbinaries and not config.skipbinaries:
             log.info('Syncing VS Code Update Versions')
@@ -616,7 +717,6 @@ if __name__ == '__main__':
             log.info('Syncing VS Code Recommended Extensions')            
             recommended = mp.get_recommendations(os.path.abspath(config.artifactdir))
             for item in recommended:
-                log.debug(item)
                 extensions[item.identity] = item
         
         if config.updatemalicious:
