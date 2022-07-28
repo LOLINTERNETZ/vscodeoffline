@@ -11,7 +11,7 @@ services:
       # Enable for dev
       #- ./vscoffline/:/opt/vscoffline/:ro
       - ./artifacts/:/artifacts/
-      - ./logs/:/logs/
+      - ./artifacts/logs/:/logs/
     environment:
       # - SYNCARGS=--sync
       # - SYNCARGS=--sync --skip-binaries --debug --logfile /logs/sync.log      
