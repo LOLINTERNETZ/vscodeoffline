@@ -14,7 +14,8 @@ services:
       - ./logs/:/logs/
     environment:
       # - SYNCARGS=--sync
-      - SYNCARGS=--sync --skip-binaries --debug --logfile /logs/sync.log --update
+      # - SYNCARGS=--sync --skip-binaries --debug --logfile /logs/sync.log      
+      - SYNCARGS=--syncall --skip-binaries --debug --logfile /logs/sync.log
       # Enable to sync all extensions
       #- SYNCARGS=--syncall
       # Enable a logfile

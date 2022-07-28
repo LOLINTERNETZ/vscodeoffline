@@ -451,16 +451,15 @@ class VSCMarketplace(object):
             #log.debug(f"search_by_extension_name failed {extensionname} got {result}")
             return False
 
-    # TODO Create a function to get the latest release version of extension
     def search_release_by_extension_id(self, extensionid):
-        log.warning(f'Searching for release candidate by extensionId: {extensionid}')
+        log.debug(f'Searching for release candidate by extensionId: {extensionid}')
         releaseQueryFlags = vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeVersions
         result = self._query_marketplace(vsc.FilterType.ExtensionId, extensionid, queryFlags=releaseQueryFlags)
         if result and len(result) == 1:
             return result[0]
         else:
-            log.warning(f"search_by_extension_id failed {extensionid}")
+            log.warning(f"search_release_by_extension_id failed {extensionid}")
             return False
 
     def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags=0):
@@ -696,7 +695,6 @@ if __name__ == '__main__':
                 if count % 100 == 0:
                     log.info(f'Progress {count}/{len(extensions)} ({count/len(extensions)*100:.1f}%)')
                 extensions[identity].download_assets(config.artifactdir_extensions)
-                # TODO This is causing double download of prerelease versions
                 bonus = extensions[identity].process_embedded_extensions(config.artifactdir_extensions, mp) + bonus
                 extensions[identity].save_state(config.artifactdir_extensions)
                 count = count + 1
