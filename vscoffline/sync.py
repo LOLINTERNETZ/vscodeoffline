@@ -155,34 +155,6 @@ class Property:
 @dataclass
 class VSCExtensionVersionDefinition:
 
-    # def __init__(self, raw=None):
-    #     self.version = None
-    #     self.flags = None
-    #     self.lastUpdate = None
-        
-    #     # files: List[File]
-    #     self.files = None
-        
-    #     # properties: List[Property]
-    #     self.properties = None
-    #     self.assetUri = None
-    #     self.fallbackAssetUri = None
-
-    #     # log.debug(f'Version: {raw.version}')
-    #     if raw:
-    #         log.debug(raw)
-    #         self.version = raw['version']
-    #         self.flags = raw["flags"]
-    #         self.lastUpdate = raw["lastUpdated"]
-            
-    #         # files: List[File]
-    #         self.files = raw["files"]
-            
-    #         # properties: List[Property]
-    #         self.properties = raw["properties"]
-    #         self.assetUri = raw["assetUri"]
-    #         self.fallbackAssetUri = raw["fallbackAssetUri"]
-
     version: str
     flags: str
     lastUpdated: str
@@ -225,16 +197,6 @@ class VSCExtensionDefinition(object):
             self.__dict__.update(raw)            
             if 'extensionId' in raw:
                 self.extensionId = raw['extensionId']
-            # if 'versions' in raw:
-            #     for rawVersion in raw['versions']:
-            #         self.versions.append(rawVersion)
-            #         # log.debug("RAW:")
-            #         # log.debug(raw['versions'])
-            #         # log.debug(rawVersion)
-            #         # log.debug(rawVersion["version"])
-            #         # version = VSCExtensionVersionDefinition(raw=rawVersion)
-            #         # self.versions.append(version)
-            #     log.debug(f'*** This now has {len(self.versions)} versions...')
 
     def download_assets(self, destination):
         availableassets = self._get_asset_types()
@@ -368,40 +330,30 @@ class VSCMarketplace(object):
         self.prerelease = prerelease
 
     def get_recommendations(self, destination):
-        recommendations: list[VSCExtensionDefinition] = self.search_top_n(n=10)
+        recommendations: list[VSCExtensionDefinition] = self.search_top_n(n=300)
         recommended_old = self.get_recommendations_old(destination)
 
         for extension in recommendations:
             # If the extension has already been found then prevent it from being collected again when processing the old recommendation list
             if extension.identity in recommended_old.keys():                
                 del recommended_old[extension.identity]
-
+        
         for packagename in recommended_old:
             extension = self.search_by_extension_name(packagename)
             if extension:
                 recommendations.append(extension)                
             else:
                 log.debug(f'get_recommendations failed finding a recommended extension by name for {packagename}. This extension has likely been removed.')
-        
-        log.warning(f'*** Searching through {len(recommendations)} recommendations for prerelease versions')
+
         prereleasecount = 0
         for recommendation in recommendations:
             recommendation.set_recommended()
             #  If the found extension is a prerelease version search for the next available release version
             if not self.prerelease and recommendation.isprerelease():
-                # log.debug(f'*** Prerelease: {recommendation.__dict__}')
                 prereleasecount += 1
                 extension = self.search_release_by_extension_id(recommendation.extensionId) 
                 if extension:
-                    recommendation.versions = list(extension.get_latest_prerelease_version())
-                    # log.debug(f'*** Extension Version: {extension.versions}')                    
-                    # log.debug(f'*** OG Version: {recommendation.versions}')
-                    # break
-                    ## search for the release version
-                    ## replace the recommendation.version with the release version
-                    # recommendations = list(map(lambda x: x.replace(recommendation, extension), 1))
-
-        log.warning(f'*** Found {prereleasecount}/{len(recommendations)} prerelease versions')
+                    recommendation.versions = [extension.get_latest_prerelease_version()]
         return recommendations
 
     def get_recommendations_old(self, destination):
@@ -472,7 +424,7 @@ class VSCMarketplace(object):
         return self._query_marketplace(vsc.FilterType.SearchText, searchtext)
     
     def search_top_n(self, n=200):
-        log.warn(f'Searching for top {n} extensions...')
+        log.warning(f'Searching for top {n} extensions...')
         return self._query_marketplace(vsc.FilterType.SearchText, '', limit=n, sortOrder=vsc.SortOrder.Descending, sortBy=vsc.SortBy.InstallCount)
 
     def search_by_extension_id(self, extensionid):
@@ -484,7 +436,15 @@ class VSCMarketplace(object):
             return False
 
     def search_by_extension_name(self, extensionname):
-        result = self._query_marketplace(vsc.FilterType.ExtensionName, extensionname)
+        if self.prerelease:
+            result = self._query_marketplace(vsc.FilterType.ExtensionName, extensionname)
+        else:
+            releaseQueryFlags = vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
+            vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeVersions
+            result = self._query_marketplace(vsc.FilterType.ExtensionName, extensionname, queryFlags=releaseQueryFlags)
+            if result and len(result) == 1:
+                result[0].versions = [result[0].get_latest_prerelease_version()]
+
         if result and len(result) == 1:
             return result[0]
         else:
@@ -496,7 +456,6 @@ class VSCMarketplace(object):
         log.warning(f'Searching for release candidate by extensionId: {extensionid}')
         releaseQueryFlags = vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeVersions
-        log.debug(f'RELEASE QUERY FLAGS: {releaseQueryFlags}')
         result = self._query_marketplace(vsc.FilterType.ExtensionId, extensionid, queryFlags=releaseQueryFlags)
         if result and len(result) == 1:
             return result[0]
@@ -508,11 +467,14 @@ class VSCMarketplace(object):
         extensions = {}
         total = 0
         count = 0
+
+        if limit > 0 and limit < pageSize:
+            pageSize = limit
+
         while count <= total:
             # log.info(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
             query = self._query(filtertype, filtervalue, pageNumber, pageSize, queryFlags)
-            log.debug(f'Query: {query}')
             result = None
             for i in range(10):
                 if i > 0:
@@ -542,7 +504,7 @@ class VSCMarketplace(object):
                         for resmd in jres['resultMetadata']:                        
                             if 'ResultCount' in resmd['metadataType']:
                                 total = resmd['metadataItems'][0]['count']
-            if limit > 0 and count > limit:
+            if limit > 0 and count >= limit:
                 break
 
         return list(extensions.values())
@@ -650,6 +612,7 @@ if __name__ == '__main__':
         config.checkbinaries = True
         config.checkextensions = True
         config.updatebinaries = True
+        # config.updateextensions = False
         config.updateextensions = True
         config.updatemalicious = True
         config.checkspecified = True
@@ -723,7 +686,6 @@ if __name__ == '__main__':
             log.info('Syncing VS Code Malicious Extension List')
             malicious = mp.get_malicious(os.path.abspath(config.artifactdir), extensions)
 
-        log.info(f'Extensions: {len(extensions)}')
         # extensions is populated with all the different extensions from the command line arguments. By this point
         # it could be a lot of extensions, 5000+
         if config.updateextensions:
@@ -734,6 +696,7 @@ if __name__ == '__main__':
                 if count % 100 == 0:
                     log.info(f'Progress {count}/{len(extensions)} ({count/len(extensions)*100:.1f}%)')
                 extensions[identity].download_assets(config.artifactdir_extensions)
+                # TODO This is causing double download of prerelease versions
                 bonus = extensions[identity].process_embedded_extensions(config.artifactdir_extensions, mp) + bonus
                 extensions[identity].save_state(config.artifactdir_extensions)
                 count = count + 1
