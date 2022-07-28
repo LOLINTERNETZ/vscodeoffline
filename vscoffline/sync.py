@@ -443,7 +443,7 @@ class VSCMarketplace(object):
     def _query_flags(self):
         #return QueryFlags(914)
         return vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
-            vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
+            vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
 
     def _headers(self, version='1.34.0'):
         if self.insider:
