@@ -330,7 +330,7 @@ class VSCMarketplace(object):
         self.prerelease = prerelease
 
     def get_recommendations(self, destination):
-        recommendations: list[VSCExtensionDefinition] = self.search_top_n(n=300)
+        recommendations: list[VSCExtensionDefinition] = self.search_top_n()
         recommended_old = self.get_recommendations_old(destination)
 
         for extension in recommendations:
