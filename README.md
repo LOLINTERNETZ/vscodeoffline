@@ -152,6 +152,9 @@ optional arguments:
   --frequency FREQUENCY
                         The frequency to try and update (e.g. sleep for '12h'
                         and try again
+  --total-recommended N 
+                        The number of recommended extensions to fetch
+                        (default: 200)
   --check-binaries      Check for updated binaries
   --check-insider       Check for updated insider binaries
   --check-recommended-extensions

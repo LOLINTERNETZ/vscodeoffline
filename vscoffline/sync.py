@@ -261,7 +261,7 @@ class VSCMarketplace(object):
         self.insider = insider
 
     def get_recommendations(self, destination):
-        recommendations = self.search_top_n(n=200)
+        recommendations = self.search_top_n(config.search_top_n)
         recommended_old = self.get_recommendations_old(destination)
 
         for extension in recommendations:
@@ -349,6 +349,7 @@ class VSCMarketplace(object):
         return self._query_marketplace(vsc.FilterType.SearchText, searchtext)
     
     def search_top_n(self, n=200):
+        log.info(f'Searching for top {n} recommended extensions')
         return self._query_marketplace(vsc.FilterType.SearchText, '', limit=n, sortOrder=vsc.SortOrder.Descending, sortBy=vsc.SortBy.InstallCount)
 
     def search_by_extension_id(self, extensionid):
@@ -470,6 +471,7 @@ if __name__ == '__main__':
     parser.add_argument('--syncall', dest='syncall', action='store_true', help='The power-user sync. It includes all binaries and extensions ')
     parser.add_argument('--artifacts', dest='artifactdir', default='../artifacts/', help='Path to downloaded artifacts')
     parser.add_argument('--frequency', dest='frequency', default=None, help='The frequency to try and update (e.g. sleep for \'12h\' and try again')    
+    parser.add_argument('--total-recommended', type=int, dest='search_top_n', default=200, help='The number of recommended extensions to fetch, default to 200')    
 
     # Arguments to tweak behaviour
     parser.add_argument('--check-binaries', dest='checkbinaries', action='store_true', help='Check for updated binaries')
