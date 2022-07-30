@@ -372,6 +372,8 @@ class VSCMarketplace(object):
         extensions = {}
         total = 0
         count = 0
+        if 0 < limit < 500:
+            pageSize = limit
         while count <= total:
             #log.debug(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
