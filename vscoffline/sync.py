@@ -199,9 +199,24 @@ class VSCExtensionDefinition(object):
                 self.extensionId = raw['extensionId']
 
     def download_assets(self, destination):
-        availableassets = self._get_asset_types()
-        for availableasset in availableassets:
-            self._download_assets(destination, availableasset)        
+        for version in self.versions:
+            targetplatform = ''
+            if "targetPlatform" in version:
+                targetplatform = version["targetPlatform"]
+            ver_destination = os.path.join(destination, self.identity, version["version"], targetplatform)
+            for file in version["files"]:
+                url = file["source"]                
+                if not url:
+                    log.warning('download_asset() cannot download update as asset url is missing')
+                    return                
+                asset = file["assetType"]
+                destfile = os.path.join(ver_destination, f'{asset}')
+                create_tree(os.path.abspath(os.sep), (destfile,))
+                if not os.path.exists(destfile):
+                    log.debug(f'Downloading {self.identity} {asset} to {destfile}')
+                    result = requests.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
+                    with open(destfile, 'wb') as dest:
+                        dest.write(result.content)     
 
     def process_embedded_extensions(self, destination, mp):
         """
@@ -209,7 +224,10 @@ class VSCExtensionDefinition(object):
         """
         bonusextensions = []
         for version in self.versions:
-            manifestpath = os.path.join(destination, self.identity, version["version"], 'Microsoft.VisualStudio.Code.Manifest')
+            targetplatform = ''
+            if "targetPlatform" in version:
+                targetplatform = version["targetPlatform"]
+            manifestpath = os.path.join(destination, self.identity, version["version"], targetplatform, 'Microsoft.VisualStudio.Code.Manifest')
             manifest = vsc.Utility.load_json(manifestpath)    
             if manifest and 'extensionPack' in manifest:
                 for extname in manifest['extensionPack']:
@@ -238,12 +256,19 @@ class VSCExtensionDefinition(object):
                     prerelease = True
         return prerelease
 
-    def get_latest_prerelease_version(self):
+    def get_latest_release_versions(self):
         if self.versions and len(self.versions) > 1:
-            filtered = list(filter(lambda x: VSCExtensionVersionDefinition.from_dict(x).isprerelease() == False, self.versions))
-            filtered.sort(reverse=True, key=lambda x: x["lastUpdated"])
-            return filtered[0]
-        return self.versions[0]
+            releaseVersions = list(filter(lambda x: VSCExtensionVersionDefinition.from_dict(x).isprerelease() == False, self.versions))
+            releaseVersions.sort(reverse=True, key=lambda x: x["lastUpdated"])
+            latestversion = releaseVersions[0]["version"]
+
+            filteredversions = []
+            for version in releaseVersions:
+                if version["version"] == latestversion:
+                    filteredversions.append(version)
+            
+            return filteredversions
+        return self.versions
 
     def version(self):
         if self.versions and len(self.versions) > 1:
@@ -252,41 +277,7 @@ class VSCExtensionDefinition(object):
     
     def set_recommended(self):
         self.recommended = True
-
-    def _download_assets(self, destination, asset):
-        if not self.extensionId:
-            log.warning('download_asset() cannot download update if the update definition has not been downloaded')
-            return
-        for version in self.versions:
-            ver_destination = os.path.join(destination, self.identity, version["version"])
-            url = self._get_asset_source(asset, version["version"])
-            if not url:
-                log.warning('download_asset() cannot download update as asset url is missing')
-                return
-            destfile = os.path.join(ver_destination, f'{asset}')
-            create_tree(os.path.abspath(os.sep), (destfile,))
-            if not os.path.exists(destfile):
-                log.debug(f'Downloading {self.identity} {asset} to {destfile}')
-                result = requests.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
-                with open(destfile, 'wb') as dest:
-                    dest.write(result.content)
     
-    def _get_asset_types(self):
-        assets = []
-        for version in self.versions:
-            for asset in version['files']:
-                if 'assetType' in asset:
-                    assets.append(asset['assetType'])
-        return assets
-
-    def _get_asset_source(self, name, version):
-        for ver in self.versions:
-            if ver["version"] == version:
-                for asset in ver['files']:
-                    if asset['assetType'] == name:
-                        return asset['source']
-        return False
-
     def __repr__(self):
         strs = f"<{self.__class__.__name__}> {self.identity} ({self.extensionId}) - Version: {self.version()}"
         return strs
@@ -354,7 +345,7 @@ class VSCMarketplace(object):
                 prereleasecount += 1
                 extension = self.search_release_by_extension_id(recommendation.extensionId) 
                 if extension:
-                    recommendation.versions = [extension.get_latest_prerelease_version()]
+                    recommendation.versions = extension.get_latest_release_versions()
         return recommendations
 
     def get_recommendations_old(self, destination):
@@ -444,7 +435,7 @@ class VSCMarketplace(object):
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeVersions
             result = self._query_marketplace(vsc.FilterType.ExtensionName, extensionname, queryFlags=releaseQueryFlags)
             if result and len(result) == 1:
-                result[0].versions = [result[0].get_latest_prerelease_version()]
+                result[0].versions = result[0].get_latest_release_versions()
 
         if result and len(result) == 1:
             return result[0]
@@ -609,7 +600,6 @@ if __name__ == '__main__':
         config.checkbinaries = True
         config.checkextensions = True
         config.updatebinaries = True
-        # config.updateextensions = False
         config.updateextensions = True
         config.updatemalicious = True
         config.checkspecified = True
@@ -670,7 +660,6 @@ if __name__ == '__main__':
             log.info(f'Checking Specific VS Code Extension: {config.extensionname}')
             result = mp.search_by_extension_name(config.extensionname)
             if result:
-                log.info(result)
                 extensions[result.identity] = result
         
         if config.checkextensions:
