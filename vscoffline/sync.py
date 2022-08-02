@@ -259,15 +259,16 @@ class VSCExtensionDefinition(object):
     def get_latest_release_versions(self):
         if self.versions and len(self.versions) > 1:
             releaseVersions = list(filter(lambda x: VSCExtensionVersionDefinition.from_dict(x).isprerelease() == False, self.versions))
-            releaseVersions.sort(reverse=True, key=lambda x: x["lastUpdated"])
-            latestversion = releaseVersions[0]["version"]
+            if(len(releaseVersions) > 0):
+                releaseVersions.sort(reverse=True, key=lambda x: x["lastUpdated"])
+                latestversion = releaseVersions[0]["version"]
 
-            filteredversions = []
-            for version in releaseVersions:
-                if version["version"] == latestversion:
-                    filteredversions.append(version)
-            
-            return filteredversions
+                filteredversions = []
+                for version in releaseVersions:
+                    if version["version"] == latestversion:
+                        filteredversions.append(version)
+                
+                return filteredversions
         return self.versions
 
     def version(self):
@@ -321,8 +322,8 @@ class VSCMarketplace(object):
         self.prerelease = prerelease
         self.version = version
 
-    def get_recommendations(self, destination):
-        recommendations: list[VSCExtensionDefinition] = self.search_top_n()
+    def get_recommendations(self, destination, totalrecommended):
+        recommendations: list[VSCExtensionDefinition] = self.search_top_n(totalrecommended)
         recommended_old = self.get_recommendations_old(destination)
 
         for extension in recommendations:
@@ -416,7 +417,6 @@ class VSCMarketplace(object):
         return self._query_marketplace(vsc.FilterType.SearchText, searchtext)
     
     def search_top_n(self, n=200):
-        log.warning(f'Searching for top {n} extensions...')
         return self._query_marketplace(vsc.FilterType.SearchText, '', limit=n, sortOrder=vsc.SortOrder.Descending, sortBy=vsc.SortBy.InstallCount)
 
     def search_by_extension_id(self, extensionid):
@@ -459,7 +459,7 @@ class VSCMarketplace(object):
         total = 0
         count = 0
 
-        if limit > 0 and limit < pageSize:
+        if 0 < limit < pageSize:
             pageSize = limit
 
         while count <= total:
@@ -578,6 +578,7 @@ if __name__ == '__main__':
     parser.add_argument('--update-malicious-extensions', dest='updatemalicious', action='store_true', help='Update the malicious extension list')
     parser.add_argument('--skip-binaries', dest='skipbinaries', action='store_true', help='Skip downloading binaries')
     parser.add_argument('--vscode-version', dest='version', default='1.69.2', help='VSCode version to search extensions as.')
+    parser.add_argument('--total-recommended', type=int, dest='totalrecommended', default=500, help='Total number of recommended extensions to sync. Defaults to 500')
     parser.add_argument('--debug', dest='debug', action='store_true', help='Show debug output')
     parser.add_argument('--logfile', dest='logfile', default=None, help='Sets a logfile to store loggging output')
     config = parser.parse_args()
@@ -664,7 +665,7 @@ if __name__ == '__main__':
         
         if config.checkextensions:
             log.info('Syncing VS Code Recommended Extensions')            
-            recommended = mp.get_recommendations(os.path.abspath(config.artifactdir))
+            recommended = mp.get_recommendations(os.path.abspath(config.artifactdir), config.totalrecommended)
             for item in recommended:
                 extensions[item.identity] = item
         
