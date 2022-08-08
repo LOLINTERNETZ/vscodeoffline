@@ -122,6 +122,7 @@ usage: sync.py [-h] [--sync] [--syncall] [--artifacts ARTIFACTDIR]
                [--extension-name EXTENSIONNAME]
                [--extension-search EXTENSIONSEARCH] [--update-binaries]
                [--update-extensions] [--update-malicious-extensions]
+               [--prerelease-extensions] [--vscode-version VSCODEVERSION]
                [--skip-binaries] [--debug] [--logfile LOGFILE]
 
 Synchronises VSCode in an Offline Environment
@@ -154,6 +155,10 @@ optional arguments:
   --update-extensions   Download extensions
   --update-malicious-extensions
                         Update the malicious extension list
+  --prerelease-extensions
+                        Download prerelease extensions. Defaults to false.
+  --vscode-version
+                        VSCode version to search extensions as.
   --skip-binaries       Skip downloading binaries
   --debug               Show debug output
   --logfile LOGFILE     Sets a logfile to store loggging output
