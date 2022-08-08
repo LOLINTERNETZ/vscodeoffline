@@ -1,7 +1,7 @@
 
 # Change Log for Visual Studio Code - Offline Gallery and Updater
  
-## [Unreleased] - yyyy-mm-dd
+## [1.0.21] - 2022-08-08
 
 ### Added
  - @tomer953 added support for fetching a specified number of recommended extensions `--total-recommended`.
