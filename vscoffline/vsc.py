@@ -1,9 +1,15 @@
-import os, io, json, hashlib, glob, datetime
+import os
+import io
+import json
+import hashlib
+import glob
+import datetime
 from enum import IntFlag
 from logzero import logger as log
 
-PLATFORMS = ['win32', 'linux', 'linux-deb', 'linux-rpm', 'darwin', 'linux-snap', 'server-linux']
-ARCHITECTURES = ['', 'x64', 'ia32']
+PLATFORMS = ['win32', 'linux', 'linux-deb', 'linux-rpm',
+             'darwin', 'linux-snap', 'server-linux']
+ARCHITECTURES = ['', 'x64']
 BUILDTYPES = ['', 'archive', 'user']
 QUALITIES = ['stable', 'insider']
 
@@ -21,6 +27,7 @@ ARTIFACT_MALICIOUS = '/artifacts/malicious.json'
 
 TIMEOUT = 12
 
+
 class QueryFlags(IntFlag):
     __no_flags_name__ = 'NoneDefined'
     NoneDefined = 0x0
@@ -36,6 +43,7 @@ class QueryFlags(IntFlag):
     IncludeLatestVersionOnly = 0x200
     Unpublished = 0x1000
 
+
 class FilterType(IntFlag):
     __no_flags_name__ = 'Target'
     Tag = 1
@@ -48,6 +56,7 @@ class FilterType(IntFlag):
     ExcludeWithFlags = 12
     UndefinedType = 14
 
+
 class SortBy(IntFlag):
     __no_flags_name__ = 'NoneOrRelevance'
     NoneOrRelevance = 0
@@ -59,17 +68,20 @@ class SortBy(IntFlag):
     AverageRating = 6
     WeightedRating = 12
 
+
 class SortOrder(IntFlag):
     __no_flags_name__ = 'Default'
     Default = 0
     Ascending = 1
     Descending = 2
 
+
 class MagicJsonEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, datetime.datetime):
             return o.isoformat()
         return o.__dict__
+
 
 class Utility(object):
     """
@@ -87,9 +99,9 @@ class Utility(object):
                 h.update(chunk)
         if expectedchecksum != h.hexdigest():
             return False
-        
+
         return True
-    
+
     @staticmethod
     def load_json(filepath):
         result = []
@@ -105,7 +117,7 @@ class Utility(object):
                 log.debug(f'JSONDecodeError while processing {filepath}')
                 return []
         return result
-    
+
     @staticmethod
     def write_json(filepath, content):
         with open(filepath, 'w') as outfile:
@@ -116,7 +128,7 @@ class Utility(object):
         results = glob.glob(filepath)
         if reverse:
             results.sort(reverse=True)
-        #log.info(filepath)
+        # log.info(filepath)
         if results and len(results) >= 1:
             return results[0]
         return False
@@ -164,4 +176,3 @@ class Utility(object):
             return True
         else:
             return False
-

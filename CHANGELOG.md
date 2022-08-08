@@ -5,12 +5,19 @@
 
 ### Added
  - @tomer953 added support for fetching a specified number of recommended extensions `--total-recommended`.
+ - @Ebsan added support for fetching pre-release extensions `--prerelease-extensions` and fix fetching other extensions [#31](https://github.com/LOLINTERNETZ/vscodeoffline/issues/31). 
+ - @Ebsan added support for specifying which Visual Studio Code version to masquerade as when fetching extensions `--vscode-version`.
 
 ### Changed
  - Merge dependabot suggestions for CI pipeline updates.
+ - Utilise individual requests, rather than a Requests session, for fetching extensions to improve stability of fetch process. Should resolve [#33](https://github.com/LOLINTERNETZ/vscodeoffline/issues/33). Thanks @Ebsan for the fix and @annieherram for reporting. 
+ - Updated build-in certificate and key to update its expiry [#37](https://github.com/LOLINTERNETZ/vscodeoffline/issues/37). Included CA chain aswell. Thanks for reporting @Ebsan.
+ - Removed platform suport for ia32 builds, as they're no longer provided since ~1.35.
+ - Split out this changelog.
 
 ### Fixed
  - @tomer953 removed a duplicate flag to QueryFlags.
+ - @Ebsan fixed an issue with downloading cross-platform extensions [#24](https://github.com/LOLINTERNETZ/vscodeoffline/issues/24).
 
 ## [1.0.20]
 ### Fixed
