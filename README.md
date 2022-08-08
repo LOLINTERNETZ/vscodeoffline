@@ -23,25 +23,10 @@ On the non-Internet connected system, **vscgallery**:
 * Supports custom/private extensions (follow the structure of a mirrored extension); and
 * Supports Remote Development.
 
-Possible ToDo List:
+Possible TODO List:
 * vscgallery - Support paging, if it's really needed (who searches 1000s of extensions anyway).
 * Investigate some form of dependency handling (if possible).
 * Add test cases.
-
-## Changelog
- * 1.0.20 - Fixed an issue when downloading multiple versions of extensions. Thanks @forky2!
- * 1.0.19 - Lots of really solid bug fixes. Thank you to @fullylegit! Resilience improvements when fetching from marketplace. Thanks @forky2 and @ebsan.
- * 1.0.18 - Meta release to trigger CI. 
- * 1.0.17 - CORS support for gallery. Thanks @kenyon!
- * 1.0.16 - Support for saving sync logs to file. Thanks @ap0yuv!
- * 1.0.15 - Improve extension stats handling.
- * 1.0.14 - Fixed insider builds being re-fetched.
- * 1.0.13 - Added initial support for extension version handling. Hopefully this resolves issue #4.
- * 1.0.12 - @ttutko fixed a bug preventing multiple build qualities (stable/insider) from being downloaded. Thanks @darkonejr for investigating and reporting.
- * 1.0.11 - Fixed bugs in Gallery sorting, and added timeouts for Sync.
- * 1.0.10 - Refactored to improve consistency.
- * 1.0.9  - Added support for Remote Development, currently (2019-05-12) available to insiders. Refactored various badness.
- * 1.0.8  - Added insiders support and support for extension packs.
 
 ## Requirements
 * Docker (ideally with docker-compose for simplicity)
