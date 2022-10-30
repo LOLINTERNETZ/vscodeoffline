@@ -1,6 +1,15 @@
 
 # Change Log for Visual Studio Code - Offline Gallery and Updater
- 
+
+## [1.0.22] - 2022-10-31
+
+### Added
+ - @maxtruxa added support for specifying docker container environment variable `SSLARGS` to control SSL arguments, or disable SSL by setting `BIND=0.0.0.0:80` and `SSLARGS=` (empty).
+
+### Changed
+ - @Precioussheep improved consistency of the codebase, reducing bonus code and added typing.
+
+
 ## [1.0.21] - 2022-08-08
 
 ### Added
@@ -18,6 +27,7 @@
 ### Fixed
  - @tomer953 removed a duplicate flag to QueryFlags.
  - @Ebsan fixed an issue with downloading cross-platform extensions [#24](https://github.com/LOLINTERNETZ/vscodeoffline/issues/24).
+
 
 ## [1.0.20]
 ### Fixed
