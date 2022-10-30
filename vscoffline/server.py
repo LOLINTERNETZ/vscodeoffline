@@ -29,11 +29,10 @@ class VSCUpdater(object):
             resp.status = falcon.HTTP_204
             return
         name = latest['name']
-        updateglob = os.path.join(updatedir, f'vscode-{name}.*')
-        updatepath = vsc.Utility.first_file(updateglob)
+        updatepath = vsc.Utility.first_file(updatedir, f'vscode-{name}.*')
         if not updatepath:
             resp.content = 'Unable to find update payload'
-            log.warning(f'Unable to find update payload from {updateglob}')
+            log.warning(f'Unable to find update payload from {updatedir}/vscode-{name}.*')
             resp.status = falcon.HTTP_404
             return
         if not vsc.Utility.hash_file_and_check(updatepath, latest['sha256hash']):
@@ -63,10 +62,9 @@ class VSCBinaryFromCommitId(object):
             resp.status = falcon.HTTP_500
             return
         name = updatejson['name']
-        updateglob = os.path.join(updatedir, f'vscode-{name}.*')
-        updatepath = vsc.Utility.first_file(updateglob)
+        updatepath = vsc.Utility.first_file(updatedir, f'vscode-{name}.*')
         if not updatepath:
-            resp.content = f'Unable to find update payload from {updateglob}'
+            resp.content = f'Unable to find update payload from {updatedir}/vscode-{name}.*'
             log.warning(resp.content)
             resp.status = falcon.HTTP_404
             return
