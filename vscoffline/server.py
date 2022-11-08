@@ -1,5 +1,6 @@
 import os, sys, time, json, glob
 import falcon
+from distutils.version import LooseVersion
 from logzero import logger as log
 from wsgiref import simple_server
 from watchdog.observers.polling import PollingObserver
@@ -147,7 +148,7 @@ class VSCGallery(object):
                 latest['versions'].append(vers['versions'][0])
 
             # Sort versions
-            latest['versions'] = sorted(latest['versions'], key=lambda k: k['version'], reverse=True)
+            latest['versions'] = sorted(latest['versions'], key=lambda k: LooseVersion(k['version']), reverse=True)
 
             # Save the extension in the cache
             name = latest['identity']
