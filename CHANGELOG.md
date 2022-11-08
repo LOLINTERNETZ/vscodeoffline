@@ -1,6 +1,12 @@
 
 # Change Log for Visual Studio Code - Offline Gallery and Updater
 
+## [1.0.23] - 2022-11-09
+
+### Fixed
+ - @forky2 resolved an issue related to incorrect version ordering (from reverse-alphanumberical to reverse-chronological), which prevented extensions updating correctly by vscode clients.
+
+
 ## [1.0.22] - 2022-10-31
 
 ### Added
