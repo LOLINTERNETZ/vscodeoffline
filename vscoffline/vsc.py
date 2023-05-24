@@ -8,7 +8,7 @@ from enum import IntFlag
 from typing import Any, Dict, List, Union
 
 log.basicConfig(
-    format='%(color)s[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d]%(end_color)s %(message)s',
+    format='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s',
     datefmt='%y%m%d %H:%M:%S',
 )
 
