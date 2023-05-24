@@ -13,9 +13,9 @@ import time
 import datetime
 from typing import List
 from platform import release
-from logzero import logger as log
 from pytimeparse.timeparse import timeparse
 import vsc
+import vsc.log as log
 from distutils.dir_util import create_tree
 
 
