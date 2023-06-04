@@ -1,12 +1,12 @@
 import os, sys, time, json, glob
 import falcon
 from distutils.version import LooseVersion
+from logzero import logger as log
 from wsgiref import simple_server
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 from threading import Event, Thread
 import vsc
-import vsc.log as log
 
 
 class VSCUpdater(object):
