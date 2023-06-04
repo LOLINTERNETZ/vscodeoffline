@@ -68,13 +68,13 @@ On the non-Internet connected system:
     **Darwin**: Import the certificates into the machine's trusted root certificate authority.
 
     **Ubuntu**: Easiest method seems to be Open Chrome, navigate to 
-    chrome://settings/certificates, select authorities and add the certificates.
+    chrome://settings/certificates, select authorities and add the certificates. Firefox on Ubuntu maintains its own certificate store. Either add the root CA, or switch Firefox to use OS provided certificates (see: https://github.com/LOLINTERNETZ/vscodeoffline/issues/43#issuecomment-1545801875). 
 
 3. Run the vscgallery service, ensuring the artifacts are accessible to the service. It needs to listen on port 443.
 
     `docker-compose up vscgallery`
 
-4. Using Chrome navigate to https://update.code.visualstudio.com. You should not see any certificate warnings, if you do it's unlikely to work in VS Code.
+4. Using Chrome/Firefox navigate to https://update.code.visualstudio.com. You should not see any certificate warnings, if you do it's unlikely to work in VS Code.
 
 5. Open VS Code, hopefully you can magically install extensions and update the install. The Help > Developer Tools > Network should tell you what is going on.
 
