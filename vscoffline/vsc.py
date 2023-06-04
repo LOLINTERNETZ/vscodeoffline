@@ -1,12 +1,16 @@
 import datetime
 import hashlib
 import json
+import logging as log
 import os
 import pathlib
 from enum import IntFlag
 from typing import Any, Dict, List, Union
 
-from logzero import logger as log
+log.basicConfig(
+    format='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s',
+    datefmt='%y%m%d %H:%M:%S',
+)
 
 PLATFORMS = ["win32", "linux", "linux-deb", "linux-rpm", "darwin", "linux-snap", "server-linux"]
 ARCHITECTURES = ["", "x64"]
