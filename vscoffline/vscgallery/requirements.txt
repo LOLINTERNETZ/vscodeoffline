@@ -1,3 +1,4 @@
+logzero
 requests
 falcon
 gunicorn
