@@ -1,13 +1,13 @@
 FROM python:3.7-alpine
+WORKDIR /opt/vscoffline
 
-COPY ./vscoffline/ /opt/vscoffline
+COPY ./vscoffline/ ./
 
 RUN mkdir /artifacts/
 
-RUN pip install --no-cache-dir -r /opt/vscoffline/vscsync/requirements.txt
+RUN pip install --no-cache-dir -r vscsync/requirements.txt
 
 ENV ARTIFACTS=/artifacts
 ENV SYNCARGS=--sync
 
-CMD python3 /opt/vscoffline/sync.py --artifacts $ARTIFACTS $SYNCARGS
-
+CMD python3 sync.py --artifacts $ARTIFACTS $SYNCARGS
