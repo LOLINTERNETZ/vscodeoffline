@@ -156,11 +156,16 @@ class Utility:
 
     @staticmethod
     def folders_in_folder(filepath: str) -> List[str]:
-        return [f for f in os.listdir(filepath) if os.path.isdir(os.path.join(filepath, f))]
+        listing = [f for f in os.listdir(filepath) if os.path.isdir(os.path.join(filepath, f))]
+        listing.sort()
+        return listing
 
     @staticmethod
     def files_in_folder(filepath: str) -> List[str]:
-        return [f for f in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, f))]
+        listing = [f for f in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, f))]
+        listing.sort()
+        return listing
+
 
     @staticmethod
     def seconds_to_human_time(seconds: int) -> str:
