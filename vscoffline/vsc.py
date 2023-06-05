@@ -1,16 +1,19 @@
 import datetime
 import hashlib
 import json
-import logging as log
+import logging
 import os
 import pathlib
 from enum import IntFlag
 from typing import Any, Dict, List, Union
 
-log.basicConfig(
+logging.basicConfig(
     format='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s',
     datefmt='%y%m%d %H:%M:%S',
+    level=logging.INFO
 )
+
+log = logging.getLogger()
 
 PLATFORMS = ["win32", "linux", "linux-deb", "linux-rpm", "darwin", "linux-snap", "server-linux"]
 ARCHITECTURES = ["", "x64"]

@@ -6,7 +6,6 @@ import requests
 import pathlib
 import hashlib
 import uuid
-import logzero
 import logging
 import json
 import time
@@ -15,8 +14,8 @@ from typing import List
 from platform import release
 from pytimeparse.timeparse import timeparse
 import vsc
-import vsc.log as log
 from distutils.dir_util import create_tree
+from logging.handlers import RotatingFileHandler
 
 
 class VSCUpdateDefinition(object):
@@ -663,17 +662,18 @@ if __name__ == '__main__':
                         help='Sets a logfile to store loggging output')
     config = parser.parse_args()
 
-    if config.debug:
-        logzero.loglevel(logging.DEBUG)
-    else:
-        logzero.loglevel(logging.INFO)
+    level = logging.DEBUG if config.debug else logging.INFO
+    log.setLevel(level)
 
     if config.logfile:
         log_dir = os.path.dirname(os.path.abspath(config.logfile))
         if not os.path.exists(log_dir):
             raise FileNotFoundError(
                 f'Log directory does not exist at {log_dir}')
-        logzero.logfile(config.logfile, maxBytes=1000000, backupCount=3)
+        
+        handler = RotatingFileHandler(config.logfile, maxBytes=1000000, backupCount=3)
+        handler.setLevel(level)
+        log.addHandler(handler)
 
     config.artifactdir_installers = os.path.join(
         os.path.abspath(config.artifactdir), 'installers')
