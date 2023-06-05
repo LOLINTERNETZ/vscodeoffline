@@ -6,14 +6,13 @@ import requests
 import pathlib
 import hashlib
 import uuid
-import logzero
 import logging
 import json
 import time
 import datetime
 from typing import List
 from platform import release
-from logzero import logger as log
+import logging as log
 from pytimeparse.timeparse import timeparse
 import vsc
 from distutils.dir_util import create_tree
@@ -675,16 +674,22 @@ if __name__ == '__main__':
     config = parser.parse_args()
 
     if config.debug:
-        logzero.loglevel(logging.DEBUG)
+        loglevel = logging.DEBUG
     else:
-        logzero.loglevel(logging.INFO)
+        loglevel = logging.INFO
 
     if config.logfile:
         log_dir = os.path.dirname(os.path.abspath(config.logfile))
         if not os.path.exists(log_dir):
             raise FileNotFoundError(
                 f'Log directory does not exist at {log_dir}')
-        logzero.logfile(config.logfile, maxBytes=1000000, backupCount=3)
+        logging.basicConfig(filename=config.logfile, encoding='utf-8', level=loglevel)
+    else:
+        log.basicConfig(
+            format='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s',
+            datefmt='%y%m%d %H:%M:%S',
+            level=loglevel
+        )
 
     config.artifactdir_installers = os.path.join(
         os.path.abspath(config.artifactdir), 'installers')

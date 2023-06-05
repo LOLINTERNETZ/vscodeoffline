@@ -5,8 +5,7 @@ import os
 import pathlib
 from enum import IntFlag
 from typing import Any, Dict, List, Union
-
-from logzero import logger as log
+import logging as log
 
 PLATFORMS = ["win32", "linux", "linux-deb", "linux-rpm", "darwin", "linux-snap", "server-linux"]
 ARCHITECTURES = ["", "x64"]

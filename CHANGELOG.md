@@ -13,6 +13,7 @@
 ### Changed
 
 - Sort gallery listings with simple python sort.
+- Removed deprecated logzero dependency, switched to logging. Thanks @bdsoha for the implementation and note.
 
 ## [1.0.23] - 2022-11-09
 
