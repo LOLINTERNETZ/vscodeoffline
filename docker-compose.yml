@@ -23,10 +23,10 @@ services:
     image: lolinternet/vscgallery:latest
     build:
       context: ./
-      dockerfile: ./vscoffline/vscgallery/Dockerfile    
+      dockerfile: ./vscoffline/vscgallery/Dockerfile
     volumes:
       # Enable for dev
-      #- ./vscoffline/:/opt/vscoffline/:ro # Enable for dev
+      #- ./vscoffline/:/opt/vscoffline/:ro
       - ./artifacts/:/artifacts/
       # Enable for custom SSL certs
       #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs

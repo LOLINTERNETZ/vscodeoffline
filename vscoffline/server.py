@@ -1,7 +1,7 @@
 import os, sys, time, json, glob
 import falcon
 from distutils.version import LooseVersion
-from logzero import logger as log
+import logging as log
 from wsgiref import simple_server
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
@@ -164,7 +164,7 @@ class VSCGallery(object):
                 if "targetPlatform" in version:
                     targetPlatform = version['targetPlatform']
                     asseturi = vsc.URLROOT + os.path.join(extensiondir, version['version'], targetPlatform)
-                else:                    
+                else:
                     asseturi = vsc.URLROOT + os.path.join(extensiondir, version['version'])
 
                 version['assetUri'] = asseturi
@@ -427,5 +427,10 @@ application.add_route('/', VSCIndex())
 application.add_static_route('/artifacts/', '/artifacts/')
 
 if __name__ == '__main__':
+    log.basicConfig(
+        format='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s',
+        datefmt='%y%m%d %H:%M:%S',
+        level=log.DEBUG
+    )
     httpd = simple_server.make_server('0.0.0.0', 5000, application)
     httpd.serve_forever()

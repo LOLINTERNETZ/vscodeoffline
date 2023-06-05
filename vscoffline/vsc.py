@@ -5,8 +5,7 @@ import os
 import pathlib
 from enum import IntFlag
 from typing import Any, Dict, List, Union
-
-from logzero import logger as log
+import logging as log
 
 PLATFORMS = ["win32", "linux", "linux-deb", "linux-rpm", "darwin", "linux-snap", "server-linux"]
 ARCHITECTURES = ["", "x64"]
@@ -156,11 +155,16 @@ class Utility:
 
     @staticmethod
     def folders_in_folder(filepath: str) -> List[str]:
-        return [f for f in os.listdir(filepath) if os.path.isdir(os.path.join(filepath, f))]
+        listing = [f for f in os.listdir(filepath) if os.path.isdir(os.path.join(filepath, f))]
+        listing.sort()
+        return listing
 
     @staticmethod
     def files_in_folder(filepath: str) -> List[str]:
-        return [f for f in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, f))]
+        listing = [f for f in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, f))]
+        listing.sort()
+        return listing
+
 
     @staticmethod
     def seconds_to_human_time(seconds: int) -> str:
