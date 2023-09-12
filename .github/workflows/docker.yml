@@ -29,7 +29,7 @@ jobs:
           
       - name: Sync - Build and push
         id: docker_build_sync
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           file: ./vscoffline/vscsync/Dockerfile          
           tags: lolinternet/vscsync:latest,lolinternet/vscsync:${{ steps.get_version.outputs.version-without-v }}
@@ -37,7 +37,7 @@ jobs:
           
       - name: Sync - Build and push
         id: docker_build_gallery
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           file: ./vscoffline/vscgallery/Dockerfile
           tags: lolinternet/vscgallery:latest,lolinternet/vscgallery:${{ steps.get_version.outputs.version-without-v }}
