@@ -206,10 +206,10 @@ class VSCGallery(object):
         #flags = vsc.QueryFlags.NoneDefined
         criteria = req.media['filters'][0]['criteria']
 
-        if req.media['filters'][0]['sortOrder']:
+        if req.media['filters'][0].get('sortOrder'):
             sortorder = vsc.SortOrder(req.media['filters'][0]['sortOrder'])
 
-        if req.media['filters'][0]['sortBy']:
+        if req.media['filters'][0].get('sortBy'):
             sortby = vsc.SortBy(req.media['filters'][0]['sortBy'])
 
         # Flags can be used for version management, but it appears the client doesn't care what's sent back
@@ -217,8 +217,8 @@ class VSCGallery(object):
         #    flags = vsc.QueryFlags(req.media['flags'])
 
         # Unused
-        #pagenumber = req.media['filters'][0]['pageNumber']
-        #pagesize = req.media['filters'][0]['pageSize']
+        #pagenumber = req.media['filters'][0].get('pageNumber', 0)
+        #pagesize = req.media['filters'][0].get('pageSize', 500)
         #log.info(f'CRITERIA {criteria}, flags {flags}, sortby {sortby}, sortorder {sortorder}')
 
         # If no order specified, default to InstallCount (e.g. popular first)
