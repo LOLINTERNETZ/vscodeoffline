@@ -526,7 +526,7 @@ class VSCMarketplace(object):
             pageSize = limit
 
         while count <= total:
-            # log.info(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
+            # log.debug(f'Query marketplace count {count} / total {total} - pagenumber {pageNumber}, pagesize {pageSize}')
             pageNumber = pageNumber + 1
             query = self._query(filtertype, filtervalue,
                                 pageNumber, pageSize, queryFlags)
@@ -666,7 +666,7 @@ if __name__ == '__main__':
     parser.add_argument('--vscode-version', dest='version',
                         default='1.69.2', help='VSCode version to search extensions as.')
     parser.add_argument('--total-recommended', type=int, dest='totalrecommended', default=500,
-                        help='Total number of recommended extensions to sync. Defaults to 500')
+                        help='Total number of recommended extensions to sync from Search API. Defaults to 500')
     parser.add_argument('--debug', dest='debug',
                         action='store_true', help='Show debug output')
     parser.add_argument('--logfile', dest='logfile', default=None,
@@ -710,7 +710,7 @@ if __name__ == '__main__':
         config.extensionsearch = '*'
         config.checkinsider = True
 
-    if config.artifactdir and config.updatebinaries:
+    if config.artifactdir:
         if not os.path.isdir(config.artifactdir):
             raise FileNotFoundError(
                 f'Artifact directory does not exist at {config.artifactdir}')
@@ -809,12 +809,19 @@ if __name__ == '__main__':
                 bonusextension.download_assets(config.artifactdir_extensions, session)
                 bonusextension.save_state(config.artifactdir_extensions)
 
-        log.info('Complete')
-        VSCUpdates.signal_updated(os.path.abspath(config.artifactdir))
+        # Check if we did anything
+        if config.checkbinaries or config.checkextensions or config.updatebinaries or config.updateextensions or config.updatemalicious or config.checkspecified or config.checkinsider:
+            log.info('Complete')
+            VSCUpdates.signal_updated(os.path.abspath(config.artifactdir))
 
-        if not config.frequency:
-            break
+            # Check if we need to sleep
+            if config.frequency:
+                log.info(
+                    f'Going to sleep for {vsc.Utility.seconds_to_human_time(config.frequency)}')
+                time.sleep(config.frequency)
+            else:
+                break
         else:
-            log.info(
-                f'Going to sleep for {vsc.Utility.seconds_to_human_time(config.frequency)}')
-            time.sleep(config.frequency)
+            log.info('Nothing to do')
+            break
+
