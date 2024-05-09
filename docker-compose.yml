@@ -9,8 +9,6 @@ services:
     dns:
       - 1.1.1.1
     volumes:
-      # Enable for dev
-      #- ./vscoffline/:/opt/vscoffline/:ro
       - ./artifacts/:/artifacts/
     environment:
       - SYNCARGS=--sync
@@ -25,8 +23,6 @@ services:
       context: ./
       dockerfile: ./vscoffline/vscgallery/Dockerfile
     volumes:
-      # Enable for dev
-      #- ./vscoffline/:/opt/vscoffline/:ro
       - ./artifacts/:/artifacts/
       # Enable for custom SSL certs
       #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs

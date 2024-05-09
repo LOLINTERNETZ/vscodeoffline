@@ -1,4 +1,4 @@
-FROM python:3.12.2-alpine
+FROM python:3.12-alpine
 WORKDIR /opt/vscoffline
 
 # For gunicorn > 20.0.0
