@@ -1,13 +1,21 @@
 FROM python:3.12-alpine
-WORKDIR /opt/vscoffline
+ARG USER=vscsync
+ARG ARTIFACTS=/artifacts
 
+WORKDIR /opt/vscoffline
 COPY ./vscoffline/ ./
 
-RUN mkdir /artifacts/
+RUN adduser -Dh /opt/vscoffline ${USER} &&\
+    mkdir ${ARTIFACTS} &&\
+    ln -s ${ARTIFACTS} ${ARTIFACTS/\//} &&\
+    chown -R ${USER}:${USER} ${ARTIFACTS} ../
+USER vscsync
 
-RUN pip install --no-cache-dir -r vscsync/requirements.txt
+RUN ls -al * &&\
+    pip install --no-cache-dir -r vscsync/requirements.txt
 
-ENV ARTIFACTS=/artifacts
+ENV ARTIFACTS=${ARTIFACTS}
 ENV SYNCARGS=--sync
 
-CMD python3 sync.py --artifacts $ARTIFACTS $SYNCARGS
+ENTRYPOINT [ "python3", "sync.py" ]
+CMD [ "--artifacts", "$ARTIFACTS", "$SYNCARGS" ]
