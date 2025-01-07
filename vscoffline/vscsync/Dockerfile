@@ -9,11 +9,12 @@ RUN adduser -Dh /opt/vscoffline ${USER} &&\
     mkdir ${ARTIFACTS} &&\
     ln -s ${ARTIFACTS} ${ARTIFACTS/\//} &&\
     chown -R ${USER}:${USER} ${ARTIFACTS} ../
-USER vscsync
+USER ${USER}
 
-RUN ls -al * &&\
+RUN PATH=/opt/vscoffline/.local/bin:$PATH \
     pip install --no-cache-dir -r vscsync/requirements.txt
 
+ENV PATH=/opt/vscoffline/.local/bin:$PATH
 ENV ARTIFACTS=${ARTIFACTS}
 ENV SYNCARGS=--sync
 
