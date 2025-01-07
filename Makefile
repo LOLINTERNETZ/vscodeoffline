@@ -10,4 +10,3 @@ podman:
 
 run:
 	docker-compose up --build -d
-git 
