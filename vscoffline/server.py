@@ -87,7 +87,7 @@ class VSCRecommendations(object):
         resp.status = falcon.HTTP_200
         resp.content_type = 'application/octet-stream'
         with open(vsc.ARTIFACT_RECOMMENDATION, 'r') as f:
-            resp.body = f.read()
+            resp.text = f.read()
 
 class VSCMalicious(object):
 
@@ -98,7 +98,7 @@ class VSCMalicious(object):
         resp.status = falcon.HTTP_200
         resp.content_type = 'application/octet-stream'
         with open(vsc.ARTIFACT_MALICIOUS, 'r') as f:
-            resp.body = f.read()
+            resp.text = f.read()
 
 class VSCGallery(object):
 
@@ -353,7 +353,7 @@ class VSCIndex(object):
     def on_get(self, req, resp):
         resp.content_type = 'text/html'
         with open('/opt/vscoffline/vscgallery/content/index.html', 'r') as f:
-            resp.body = f.read()
+            resp.text = f.read()
         resp.status = falcon.HTTP_200
 
 class VSCDirectoryBrowse(object):
@@ -370,9 +370,9 @@ class VSCDirectoryBrowse(object):
         resp.content_type = 'text/html'
         # Load template and replace variables
         with open('/opt/vscoffline/vscgallery/content/browse.html', 'r') as f:
-            resp.body = f.read()
-        resp.body = resp.body.replace('{PATH}', requested_path)
-        resp.body = resp.body.replace('{CONTENT}', self.simple_dir_browse_response(requested_path))
+            resp.text = f.read()
+        resp.text = resp.text.replace('{PATH}', requested_path)
+        resp.text = resp.text.replace('{CONTENT}', self.simple_dir_browse_response(requested_path))
         resp.status = falcon.HTTP_200
 
     def simple_dir_browse_response(self, path):
