@@ -404,7 +404,7 @@ class VSCMarketplace(object):
         if result.status_code != 200:
             log.warning(
                 f"get_recommendations failed accessing url {vsc.URL_RECOMMENDATIONS}, unhandled status code {result.status_code}")
-            return False
+            return {}  # Return an empty dictionary instead of False
 
         jresult = result.json()
         with open(os.path.join(destination, 'recommendations.json'), 'w') as outfile:
