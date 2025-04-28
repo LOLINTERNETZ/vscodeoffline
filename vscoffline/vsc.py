@@ -135,6 +135,9 @@ class Utility:
             except json.decoder.JSONDecodeError as err:
                 log.debug(f"JSONDecodeError while processing {filepath.absolute()} \n error: {str(err)}")
                 return []
+            except UnicodeDecodeError as err:
+                log.debug(f"UnicodeDecodeError while processing {filepath.absolute()} \n error: {str(err)}")
+                return []
         return result
 
     @staticmethod

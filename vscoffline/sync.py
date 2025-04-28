@@ -368,6 +368,7 @@ class VSCMarketplace(object):
         self.prerelease = prerelease
         self.version = version
         self.session = session
+        self.backoff = 1
 
     def get_recommendations(self, destination, totalrecommended):
         recommendations = self.search_top_n(totalrecommended)
@@ -517,6 +518,13 @@ class VSCMarketplace(object):
             log.warning(f"search_release_by_extension_id failed {extensionid}")
             return False
 
+    def backoff_reset(self):
+        self.backoff = 1
+        
+    def backoff_sleep(self):
+        time.sleep(self.backoff)
+        self.backoff *= 2
+
     def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags=0):
         extensions = {}
         total = 0
@@ -531,19 +539,26 @@ class VSCMarketplace(object):
             query = self._query(filtertype, filtervalue,
                                 pageNumber, pageSize, queryFlags)
             result = None
-            for i in range(10):
-                if i > 0:
-                    log.info("Retrying pull page %d attempt %d." %
-                             (pageNumber, i+1))
+            i = 0
+            while i < 10:
                 try:
                     result = self.session.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(
                     ), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
                     if result:
+                        self.backoff_reset()
                         break
+                    elif result.status_code == 429:
+                        # Server is rate limiting us. Backoff.
+                        self.backoff_sleep()
+                        continue
                 except requests.exceptions.ProxyError:
                     log.info("ProxyError: Retrying.")
                 except requests.exceptions.ReadTimeout:
                     log.info("ReadTimeout: Retrying.")
+                i += 1
+                if i < 10:
+                    log.info("Retrying pull page %d attempt %d." %
+                             (pageNumber, i+1))
             if not result:
                 log.info("Failed 10 attempts to query marketplace. Giving up.")
                 break
