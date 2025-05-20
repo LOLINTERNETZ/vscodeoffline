@@ -487,7 +487,7 @@ class VSCMarketplace(object):
             'utf-8', 'ignore').replace(u'\xa0', u'')
         jresult = json.loads(stripped)
 
-        for extension in extensions[:]:     # Iterate over a copy of the extension collection
+        for extension in (extensions.copy()):
             if extension in jresult['malicious']:
                 log.warning(
                     f'Preventing malicious extension {extension} from being downloaded')
