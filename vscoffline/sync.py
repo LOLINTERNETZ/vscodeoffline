@@ -389,7 +389,7 @@ class VSCUpdates(object):
     def signal_updated(artifactdir):
         signalpath = os.path.join(artifactdir, 'updated.json')
         result = {
-            'updated': datetime.datetime.utcnow()
+            'updated': datetime.datetime.now(datetime.timezone.utc)
         }
         with open(signalpath, 'w') as outfile:
             json.dump(result, outfile, cls=vsc.MagicJsonEncoder, indent=4)
