@@ -747,6 +747,8 @@ if __name__ == '__main__':
                         help='Sets a logfile to store loggging output')
     parser.add_argument('--include-existing', dest='existing',
                         action='store_true', help='Include existing extensions in the update process')
+    parser.add_argument('--skip-existing', dest='skipExisting',
+                        action='store_true', help='Skip inclusion of existing extensions in the update process')
     parser.add_argument('--garbage-collection', dest='garbageCollection',
                         action='store_true', help='Remove old versions of artifacts (binaries / extensions)')
     config = parser.parse_args()
