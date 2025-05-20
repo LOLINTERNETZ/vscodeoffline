@@ -4,7 +4,6 @@ import sys
 import argparse
 import requests
 import pathlib
-import hashlib
 import uuid
 import logging
 import json
@@ -17,6 +16,7 @@ from pytimeparse.timeparse import timeparse
 import vsc
 from distutils.dir_util import create_tree
 from requests.adapters import HTTPAdapter, Retry
+from packaging.version import Version
 
 
 class VSCUpdateDefinition(object):
@@ -352,6 +352,19 @@ class VSCUpdates(object):
         return versions
 
     @staticmethod
+    def latest_version(insider=False):
+        versions = VSCUpdates.latest_versions(insider)
+        latestVersion = Version('0.0.0')
+        for version in versions.items():
+            productVersion = version[1].productVersion
+            if not productVersion:
+                break
+            productVersion = Version(productVersion)
+            if productVersion > latestVersion:
+                latestVersion = productVersion
+        return str(latestVersion)
+
+    @staticmethod
     def signal_updated(artifactdir):
         signalpath = os.path.join(artifactdir, 'updated.json')
         result = {
@@ -677,7 +690,7 @@ if __name__ == '__main__':
     parser.add_argument('--skip-binaries', dest='skipbinaries',
                         action='store_true', help='Skip downloading binaries')
     parser.add_argument('--vscode-version', dest='version',
-                        default='1.69.2', help='VSCode version to search extensions as.')
+                        default=VSCUpdates.latest_version(), help='VSCode version to search extensions as.')
     parser.add_argument('--total-recommended', type=int, dest='totalrecommended', default=500,
                         help='Total number of recommended extensions to sync from Search API. Defaults to 500')
     parser.add_argument('--debug', dest='debug',
