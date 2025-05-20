@@ -419,7 +419,11 @@ class VSCMarketplace(object):
 
         return packages
 
-    def get_malicious(self, destination, extensions=None):
+    def get_malicious(self, extensions=None):
+        if not extensions:
+            return
+
+        # Query Microsofts list
         result = self.session.get(
             vsc.URL_MALICIOUS, allow_redirects=True, timeout=vsc.TIMEOUT)
         if result.status_code != 200:
@@ -430,11 +434,6 @@ class VSCMarketplace(object):
         stripped = result.content.decode(
             'utf-8', 'ignore').replace(u'\xa0', u'')
         jresult = json.loads(stripped)
-        with open(os.path.join(destination, 'malicious.json'), 'w') as outfile:
-            json.dump(jresult, outfile, cls=vsc.MagicJsonEncoder, indent=4)
-
-        if not extensions:
-            return
 
         for malicious in jresult['malicious']:
             log.debug(f'Malicious extension {malicious}')
@@ -800,7 +799,7 @@ if __name__ == '__main__':
         if config.updatemalicious:
             log.info('Syncing VS Code Malicious Extension List')
             malicious = mp.get_malicious(
-                os.path.abspath(config.artifactdir), extensions)
+                extensions)
 
         if config.updateextensions:
             log.info(
