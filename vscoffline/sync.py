@@ -327,6 +327,25 @@ class VSCExtensionDefinition(object):
         return strs
 
 
+class VSCExtension:
+
+    @staticmethod
+    def remove_old(artifactdir_extensions):
+        for path, directoryNames, fileNames in os.walk(artifactdir_extensions):
+            path = path.replace(artifactdir_extensions, '')
+            if path == '':
+                continue    # Skip root directory
+            if str(path).count(os.path.sep) > 1:
+                continue    # Skip any subdirectory
+            versions = sorted(directoryNames, key=lambda dir: Version(dir), reverse=True)
+            versions.remove(versions[0])
+            if len(versions) == 0:
+                continue    # Only a single version exists
+            for version in versions:
+                # Delete all left over versions
+                log.debug(f'Remove version {version} of {os.path.basename(path)}')
+
+
 class VSCUpdates(object):
 
     @staticmethod
@@ -697,6 +716,8 @@ if __name__ == '__main__':
                         action='store_true', help='Show debug output')
     parser.add_argument('--logfile', dest='logfile', default=None,
                         help='Sets a logfile to store loggging output')
+    parser.add_argument('--garbage-collection', dest='garbageCollection',
+                        action='store_true', help='Remove old versions of artifacts (binaries / extensions)')
     config = parser.parse_args()
 
     if config.debug:
@@ -760,7 +781,7 @@ if __name__ == '__main__':
                             config.prerelease, config.version, session)
 
         if config.checkbinaries and not config.skipbinaries:
-            log.info('Syncing VS Code Update Versions')
+            log.info('Syncing VS Code Update Binaries')
             versions = VSCUpdates.latest_versions(config.checkinsider)
 
         if config.updatebinaries and not config.skipbinaries:
@@ -774,6 +795,12 @@ if __name__ == '__main__':
                     if result:
                         versions[idkey].save_state(
                             config.artifactdir_installers)
+
+        if config.garbageCollection:
+            # ToDo Garbage collection for old binaries
+            # log.info('Removing old VS Code Binaries')
+            log.info('Removing old VS Code Extensions')
+            VSCExtension.remove_old(config.artifactdir_extensions)
 
         if config.checkspecified:
             log.info('Syncing VS Code Specified Extensions')

@@ -1,7 +1,7 @@
 # Change Log for Visual Studio Code - Offline Gallery and Updater
 
 ## ToDo
-- [ ] Cleanup old extension versions
+- [X] Cleanup old extension versions
 - [ ] Cleanup old binary versions
 - [ ] Include existing extensions in update process
 - [ ] Determine VSCode version automatically
