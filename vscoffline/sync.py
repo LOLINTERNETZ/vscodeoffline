@@ -653,7 +653,7 @@ if __name__ == '__main__':
     parser.add_argument('--artifacts', dest='artifactdir',
                         default='../artifacts/', help='Path to downloaded artifacts')
     parser.add_argument('--frequency', dest='frequency', default=None,
-                        help='The frequency to try and update (e.g. sleep for \'12h\' and try again')
+                        help='The frequency to try and update (e.g. sleep for \'12h\' and try again)')
 
     # Arguments to tweak behaviour
     parser.add_argument('--check-binaries', dest='checkbinaries',
