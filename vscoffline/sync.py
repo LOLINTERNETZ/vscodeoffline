@@ -705,51 +705,54 @@ class VSCMarketplace(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Synchronises VSCode in an Offline Environment')
-    parser.add_argument('--sync', dest='sync', action='store_true',
+    parser.add_argument('--sync', '-s', dest='sync', action='store_true',
                         help='The basic-user sync. It includes stable binaries and typical extensions')
-    parser.add_argument('--syncall', dest='syncall', action='store_true',
+    parser.add_argument('--syncall', '-a', dest='syncall', action='store_true',
                         help='The power-user sync. It includes all binaries and extensions ')
-    parser.add_argument('--artifacts', dest='artifactdir',
+    parser.add_argument('--artifacts', '-d', dest='artifactdir',
                         default='../artifacts/', help='Path to downloaded artifacts')
-    parser.add_argument('--frequency', dest='frequency', default=None,
+    parser.add_argument('--frequency', '-f', dest='frequency', default=None,
                         help='The frequency to try and update (e.g. sleep for \'12h\' and try again)')
 
     # Arguments to tweak behaviour
+    # ToDo Implement action=argparse.BooleanOptionalAction to combine --check-binaries and --skip-binaries into a single argument
     parser.add_argument('--check-binaries', dest='checkbinaries',
                         action='store_true', help='Check for updated binaries')
-    parser.add_argument('--check-insider', dest='checkinsider',
+    parser.add_argument('--check-insider', '-i', dest='checkinsider',
                         action='store_true', help='Check for updated insider binaries')
     parser.add_argument('--check-recommended-extensions', dest='checkextensions',
                         action='store_true', help='Check for recommended extensions')
-    parser.add_argument('--check-specified-extensions', dest='checkspecified',
+    parser.add_argument('--check-specified-extensions', '-w', dest='checkspecified',
                         action='store_true', help='Check for extensions in <artifacts>/specified.json')
-    parser.add_argument('--extension-name', dest='extensionname',
+    # ToDo Allow for list of names (action='extend' nargs='+')
+    parser.add_argument('--extension-name', '-n', dest='extensionname',
                         help='Find a specific extension by name')
+    # ToDo Allow for list of names (action='extend' nargs='+')
     parser.add_argument('--extension-search', dest='extensionsearch',
                         help='Search for a set of extensions')
-    parser.add_argument('--prerelease-extensions', dest='prerelease',
+    parser.add_argument('--prerelease-extensions', '-p', dest='prerelease',
                         action='store_true', help='Download prerelease extensions. Defaults to false.')
-    parser.add_argument('--update-binaries', dest='updatebinaries',
+    parser.add_argument('--update-binaries', '-b', dest='updatebinaries',
                         action='store_true', help='Download binaries')
-    parser.add_argument('--update-extensions', dest='updateextensions',
+    parser.add_argument('--update-extensions', '-u', dest='updateextensions',
                         action='store_true', help='Download extensions')
-    parser.add_argument('--update-malicious-extensions', dest='updatemalicious',
+    parser.add_argument('--update-malicious-extensions', '-m', dest='updatemalicious',
                         action='store_true', help='Update the malicious extension list')
-    parser.add_argument('--skip-binaries', dest='skipbinaries',
+    parser.add_argument('--skip-binaries', '-B', dest='skipbinaries',
                         action='store_true', help='Skip downloading binaries')
-    parser.add_argument('--vscode-version', dest='version',
+    parser.add_argument('--vscode-version', '-v', dest='version',
                         default=VSCUpdates.latest_version(), help='VSCode version to search extensions as.')
     parser.add_argument('--total-recommended', type=int, dest='totalrecommended', default=500,
                         help='Total number of recommended extensions to sync from Search API. Defaults to 500')
     parser.add_argument('--debug', dest='debug',
                         action='store_true', help='Show debug output')
-    parser.add_argument('--logfile', dest='logfile', default=None,
+    parser.add_argument('--logfile', '-l', dest='logfile', default=None,
                         help='Sets a logfile to store loggging output')
-    parser.add_argument('--include-existing', dest='existing',
+    parser.add_argument('--include-existing', '-e', dest='existing',
                         action='store_true', help='Include existing extensions in the update process')
-    parser.add_argument('--skip-existing', dest='skipExisting',
+    parser.add_argument('--skip-existing', '-E', dest='skipExisting',
                         action='store_true', help='Skip inclusion of existing extensions in the update process')
-    parser.add_argument('--garbage-collection', dest='garbageCollection',
+    parser.add_argument('--garbage-collection', '-g', dest='garbageCollection',
                         action='store_true', help='Remove old versions of artifacts (binaries / extensions)')
     config = parser.parse_args()
 

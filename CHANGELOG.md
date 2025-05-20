@@ -5,7 +5,7 @@
 - [X] Cleanup old binary versions
 - [X] Include existing extensions in update process
 - [ ] Determine VSCode version automatically
-- [ ] Shorthands for command line arguments
+- [X] Shorthands for command line arguments
 
 ## `1.0.24` - 2023-06-05
 ### Fixed
