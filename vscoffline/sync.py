@@ -783,8 +783,6 @@ if __name__ == '__main__':
         config.updateextensions = True
         config.updatemalicious = True
         config.checkspecified = True
-        if not config.frequency:
-            config.frequency = '12h'
         config.existing = True
 
     if config.syncall:
