@@ -743,8 +743,8 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Check for updated insider binaries'
     )
-    parser.add_argument('--check-recommended-extensions',
-                        dest='checkextensions',
+    parser.add_argument('--check-recommended-extensions', '-r',
+                        dest='checkrecommended',
                         action='store_true',
                         help='Check for recommended extensions'
     )
@@ -819,6 +819,11 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Skip inclusion of existing extensions in the update process'
     )
+    parser.add_argument('--skip-recommended', '-R',
+                        dest='skipRecommended',
+                        action='store_true',
+                        help='Skip inclusion of existing extensions in the update process'
+    )
     parser.add_argument('--garbage-collection', '-g',
                         dest='garbageCollection',
                         action='store_true',
@@ -851,7 +856,7 @@ if __name__ == '__main__':
 
     if config.sync or config.syncall:
         config.checkbinaries = True
-        config.checkextensions = True
+        config.checkrecommended = True
         config.updatebinaries = True
         config.updateextensions = True
         config.updatemalicious = True
@@ -943,7 +948,7 @@ if __name__ == '__main__':
             if result:
                 extensions[result.identity] = result
 
-        if config.checkextensions:
+        if config.checkrecommended and not config.skipRecommended:
             log.info('Syncing VS Code Recommended Extensions')
             recommended = mp.get_recommendations(os.path.abspath(
                 config.artifactdir), config.totalrecommended)
@@ -978,7 +983,7 @@ if __name__ == '__main__':
                 bonusextension.save_state(config.artifactdir_extensions)
 
         # Check if we did anything
-        if config.checkbinaries or config.checkextensions or config.updatebinaries or config.updateextensions or config.updatemalicious or config.checkspecified or config.checkinsider:
+        if config.checkbinaries or config.checkrecommended or config.updatebinaries or config.updateextensions or config.updatemalicious or config.checkspecified or config.checkinsider:
             log.info('Complete')
             VSCUpdates.signal_updated(os.path.abspath(config.artifactdir))
 
