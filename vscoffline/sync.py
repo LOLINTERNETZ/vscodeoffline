@@ -579,9 +579,9 @@ class VSCMarketplace(object):
         extensions=[]
         for extension in glob.glob(os.path.join(artifactdir_extensions, '*', 'latest.json')):
             manifest = vsc.Utility.load_json(extension)
-            result = self.search_by_extension_id(manifest['identity'])
+            result = self.search_by_extension_id(manifest['extensionId'])
             if result:
-                extensions += result
+                extensions.append(result)
         return extensions
 
     def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags=0):
