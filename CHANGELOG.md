@@ -1,12 +1,5 @@
 # Change Log for Visual Studio Code - Offline Gallery and Updater
 
-## ToDo
-- [X] Cleanup old extension versions
-- [X] Cleanup old binary versions
-- [X] Include existing extensions in update process
-- [ ] Determine VSCode version automatically
-- [X] Shorthands for command line arguments
-
 ## `1.0.24` - 2023-06-05
 ### Fixed
 - Improvements to requests session handling to prevent ConnectionErrors due to repeated connections. Thanks @tomer953 for reporting.

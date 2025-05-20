@@ -116,50 +116,48 @@ These arguments can be passed as command line arguments to sync.py  (e.g. --varA
 
  ### Possible Args:
 ```
-usage: sync.py [-h] [--sync] [--syncall] [--artifacts ARTIFACTDIR]
-               [--frequency FREQUENCY] [--check-binaries] [--check-insider]
-               [--check-recommended-extensions] [--check-specified-extensions]
-               [--extension-name EXTENSIONNAME]
-               [--extension-search EXTENSIONSEARCH] [--update-binaries]
-               [--update-extensions] [--update-malicious-extensions]
-               [--prerelease-extensions] [--vscode-version VSCODEVERSION]
-               [--skip-binaries] [--debug] [--logfile LOGFILE]
+usage: sync.py [-h] [--sync] [--syncall] [--artifacts ARTIFACTDIR] [--frequency FREQUENCY] [--check-binaries] [--check-insider] [--check-recommended-extensions] [--check-specified-extensions] [--extension-name EXTENSIONNAME] [--extension-search EXTENSIONSEARCH] [--prerelease-extensions]
+               [--update-binaries] [--update-extensions] [--update-malicious-extensions] [--skip-binaries] [--vscode-version VERSION] [--total-recommended TOTALRECOMMENDED] [--debug] [--logfile LOGFILE] [--include-existing] [--skip-existing] [--garbage-collection]
 
 Synchronises VSCode in an Offline Environment
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  --sync                The basic-user sync. It includes stable binaries and
-                        typical extensions
-  --syncall             The power-user sync. It includes all binaries and
-                        extensions
-  --artifacts ARTIFACTDIR
+  --sync, -s            The basic-user sync. It includes stable binaries and typical extensions
+  --syncall, -a         The power-user sync. It includes all binaries and extensions
+  --artifacts ARTIFACTDIR, -d ARTIFACTDIR
                         Path to downloaded artifacts
-  --frequency FREQUENCY
-                        The frequency to try and update (e.g. sleep for '12h'
-                        and try again
-  --total-recommended N 
-                        The number of recommended extensions to fetch
-                        (default: 200)
+  --frequency FREQUENCY, -f FREQUENCY
+                        The frequency to try and update (e.g. sleep for '12h' and try again)
   --check-binaries      Check for updated binaries
-  --check-insider       Check for updated insider binaries
+  --check-insider, -i   Check for updated insider binaries
   --check-recommended-extensions
                         Check for recommended extensions
-  --check-specified-extensions
+  --check-specified-extensions, -w
                         Check for extensions in <artifacts>/specified.json
-  --extension-name EXTENSIONNAME
+  --extension-name EXTENSIONNAME, -n EXTENSIONNAME
                         Find a specific extension by name
   --extension-search EXTENSIONSEARCH
                         Search for a set of extensions
-  --update-binaries     Download binaries
-  --update-extensions   Download extensions
-  --update-malicious-extensions
-                        Update the malicious extension list
-  --prerelease-extensions
+  --prerelease-extensions, -p
                         Download prerelease extensions. Defaults to false.
-  --vscode-version
+  --update-binaries, -b
+                        Download binaries
+  --update-extensions, -u
+                        Download extensions
+  --update-malicious-extensions, -m
+                        Update the malicious extension list
+  --skip-binaries, -B   Skip downloading binaries
+  --vscode-version VERSION, -v VERSION
                         VSCode version to search extensions as.
-  --skip-binaries       Skip downloading binaries
+  --total-recommended TOTALRECOMMENDED
+                        Total number of recommended extensions to sync from Search API. Defaults to 500
   --debug               Show debug output
-  --logfile LOGFILE     Sets a logfile to store loggging output
+  --logfile LOGFILE, -l LOGFILE
+                        Sets a logfile to store loggging output
+  --include-existing, -e
+                        Include existing extensions in the update process
+  --skip-existing, -E   Skip inclusion of existing extensions in the update process
+  --garbage-collection, -g
+                        Remove old versions of artifacts (binaries / extensions)
   ```
