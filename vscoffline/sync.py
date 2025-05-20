@@ -405,7 +405,7 @@ class VSCUpdates(object):
             if str(path).count(os.path.sep) > 2:
                 continue    # Skip any subdirectory
             filtered = filter(lambda file: not file.endswith('.json'), fileNames)
-            versions = sorted(filtered, key=lambda file: Version(re.findall('\d+\.\d+\.\d+', file)[0]), reverse=True)
+            versions = sorted(filtered, key=lambda file: Version(re.findall(r'\d+\.\d+\.\d+', file)[0]), reverse=True)
             if not versions:
                 # Versions could not be determined
                 log.debug(f'Versions of {path[path.index(os.path.sep)]} could not be determined')
