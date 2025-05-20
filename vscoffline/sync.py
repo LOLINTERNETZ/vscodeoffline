@@ -338,7 +338,7 @@ class VSCUpdates(object):
                     for quality in vsc.QUALITIES:
                         if quality == 'insider' and not insider:
                             continue
-                        if platform == 'win32' and architecture == 'ia32':
+                        if platform == 'win32-x64' and architecture == 'ia32':
                             continue
                         if platform == 'darwin' and (architecture != '' or buildtype != ''):
                             continue
