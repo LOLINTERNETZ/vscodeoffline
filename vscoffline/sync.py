@@ -393,6 +393,25 @@ class VSCUpdates(object):
         with open(signalpath, 'w') as outfile:
             json.dump(result, outfile, cls=vsc.MagicJsonEncoder, indent=4)
 
+    @staticmethod
+    def remove_old(artifactdir_installers):
+        for path, directoryNames, fileNames in os.walk(artifactdir_installers):
+            path = path.replace(artifactdir_installers, '')
+            if path == '':
+                continue    # Skip root directory
+            if str(path).count(os.path.sep) == 1:
+                continue    # Skip version directory
+            if str(path).count(os.path.sep) > 2:
+                continue    # Skip any subdirectory
+            filtered = filter(lambda file: not file.endswith('.json'), fileNames)
+            versions = sorted(filtered, key=lambda file: Version(re.findall('\d+\.\d+\.\d+', file)[0]), reverse=True)
+            versions.remove(versions[0])
+            if len(versions) == 0:
+                continue    # Only a single version exists
+            for version in versions:
+                # Delete all left over versions
+                log.debug(f'Remove version {version} of {path[path.index(os.path.sep)]}')
+
 
 class VSCMarketplace(object):
 
@@ -813,8 +832,8 @@ if __name__ == '__main__':
                             config.artifactdir_installers)
 
         if config.garbageCollection:
-            # ToDo Garbage collection for old binaries
-            # log.info('Removing old VS Code Binaries')
+            log.info('Removing old VS Code Binaries')
+            VSCUpdates.remove_old(config.artifactdir_installers)
             log.info('Removing old VS Code Extensions')
             VSCExtension.remove_old(config.artifactdir_extensions)
 
