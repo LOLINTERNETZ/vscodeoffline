@@ -7,7 +7,7 @@ from enum import IntFlag
 from typing import Any, Dict, List, Union
 import logging as log
 
-PLATFORMS = ["win32", "linux", "linux-deb", "linux-rpm", "darwin", "darwin-arm64", "darwin-universal", "linux-snap", "server-linux", "server-linux-legacy", "cli-alpine"]
+PLATFORMS = ["win32-x64", "linux", "linux-deb", "linux-rpm", "darwin", "darwin-arm64", "darwin-universal", "linux-snap", "server-linux", "server-linux-legacy", "cli-alpine"]
 ARCHITECTURES = ["", "x64", "arm64", "armhf", "alpine"]
 BUILDTYPES = ["", "archive", "user", "web"]
 QUALITIES = ["stable", "insider"]
