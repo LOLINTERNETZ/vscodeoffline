@@ -3,7 +3,7 @@
 ## ToDo
 - [X] Cleanup old extension versions
 - [ ] Cleanup old binary versions
-- [ ] Include existing extensions in update process
+- [X] Include existing extensions in update process
 - [ ] Determine VSCode version automatically
 - [ ] Shorthands for command line arguments
 

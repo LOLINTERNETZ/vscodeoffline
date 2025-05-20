@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import glob
 import os
 import sys
 import argparse
@@ -555,6 +556,15 @@ class VSCMarketplace(object):
         time.sleep(self.backoff)
         self.backoff *= 2
 
+    def get_existing(self, artifactdir_extensions):
+        extensions=[]
+        for extension in glob.glob(os.path.join(artifactdir_extensions, '*', 'latest.json')):
+            manifest = vsc.Utility.load_json(extension)
+            result = self.search_by_extension_id(manifest['identity'])
+            if result:
+                extensions += result
+        return extensions
+
     def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags=0):
         extensions = {}
         total = 0
@@ -716,6 +726,8 @@ if __name__ == '__main__':
                         action='store_true', help='Show debug output')
     parser.add_argument('--logfile', dest='logfile', default=None,
                         help='Sets a logfile to store loggging output')
+    parser.add_argument('--include-existing', dest='existing',
+                        action='store_true', help='Include existing extensions in the update process')
     parser.add_argument('--garbage-collection', dest='garbageCollection',
                         action='store_true', help='Remove old versions of artifacts (binaries / extensions)')
     config = parser.parse_args()
@@ -752,6 +764,7 @@ if __name__ == '__main__':
         config.checkspecified = True
         if not config.frequency:
             config.frequency = '12h'
+        config.existing = True
 
     if config.syncall:
         config.extensionsearch = '*'
@@ -764,6 +777,9 @@ if __name__ == '__main__':
 
     if config.updatebinaries and not config.checkbinaries:
         config.checkbinaries = True
+
+    if config.existing:
+        config.updateextensions = True
 
     if config.frequency:
         config.frequency = timeparse(config.frequency)
@@ -801,6 +817,13 @@ if __name__ == '__main__':
             # log.info('Removing old VS Code Binaries')
             log.info('Removing old VS Code Extensions')
             VSCExtension.remove_old(config.artifactdir_extensions)
+
+        if config.existing and not config.skipExisting:
+            log.info('Get existing extensions from artifact directory')
+            existing = mp.get_existing(config.artifactdir_extensions)
+            if existing:
+                for item in existing:
+                    extensions[item.identity] = item
 
         if config.checkspecified:
             log.info('Syncing VS Code Specified Extensions')
