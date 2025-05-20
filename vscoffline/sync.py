@@ -435,12 +435,11 @@ class VSCMarketplace(object):
             'utf-8', 'ignore').replace(u'\xa0', u'')
         jresult = json.loads(stripped)
 
-        for malicious in jresult['malicious']:
-            log.debug(f'Malicious extension {malicious}')
-            if malicious in extensions.keys():
+        for extension in extensions[:]:     # Iterate over a copy of the extension collection
+            if extension in jresult['malicious']:
                 log.warning(
-                    f'Preventing malicious extension {malicious} from being downloaded')
-                del extensions[malicious]
+                    f'Preventing malicious extension {extension} from being downloaded')
+                del extensions[extension]
 
     def get_specified(self, specifiedpath):
         if not os.path.exists(specifiedpath):
