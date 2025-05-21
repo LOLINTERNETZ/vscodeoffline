@@ -54,7 +54,7 @@ On the non-Internet connected system:
 
 1. On the non-Internet connected system, ensure the following DNS addresses are pointed toward the vscgallery service.
     * update.code.visualstudio.com
-    * az764295.vo.msecnd.net
+    * main.vscode-cdn.net
     * marketplace.visualstudio.com
 
     This may be achieved using a corporate DNS server, or by modifying a client's host file.
@@ -90,7 +90,7 @@ This guide will setup the vscsync and vscgallery service on the same Docker host
 
 2. Point the DNS addresses to the vscgallery service.
     * update.code.visualstudio.com
-    * az764295.vo.msecnd.net
+    * main.vscode-cdn.net
     * marketplace.visualstudio.com
 
     This may be achieved using a corporate DNS server, or by modifying a client's host file.
