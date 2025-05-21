@@ -476,7 +476,7 @@ class VSCMarketplace(object):
 
         return packages
 
-    def get_malicious(self, extensions=None):
+    def get_malicious(self, destination, extensions=None):
         if not extensions:
             return
 
@@ -492,6 +492,11 @@ class VSCMarketplace(object):
             'utf-8', 'ignore').replace(u'\xa0', u'')
         jresult = json.loads(stripped)
 
+        # Output to malicious.json (used by VS Code)
+        with open(os.path.join(destination, 'malicious.json'), 'w') as outfile:
+            json.dump(jresult, outfile, cls=vsc.MagicJsonEncoder, indent=4)
+
+        # Remove malicious extensions from collection
         for extension in (extensions.copy()):
             if extension in jresult['malicious']:
                 log.warning(
@@ -960,7 +965,7 @@ if __name__ == '__main__':
         if config.updatemalicious:
             log.info('Syncing VS Code Malicious Extension List')
             malicious = mp.get_malicious(
-                extensions)
+                os.path.abspath(config.artifactdir), extensions)
 
         if config.updateextensions:
             log.info(
