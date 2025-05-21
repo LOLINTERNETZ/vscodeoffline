@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+import glob
 import os
 import sys
+import re
 import argparse
 import requests
 import pathlib
-import hashlib
 import uuid
 import logging
 import json
@@ -17,6 +18,7 @@ from pytimeparse.timeparse import timeparse
 import vsc
 from distutils.dir_util import create_tree
 from requests.adapters import HTTPAdapter, Retry
+from packaging.version import Version
 
 
 class VSCUpdateDefinition(object):
@@ -327,6 +329,25 @@ class VSCExtensionDefinition(object):
         return strs
 
 
+class VSCExtension:
+
+    @staticmethod
+    def remove_old(artifactdir_extensions):
+        for path, directoryNames, fileNames in os.walk(artifactdir_extensions):
+            path = path.replace(artifactdir_extensions, '')
+            if path == '':
+                continue    # Skip root directory
+            if str(path).count(os.path.sep) > 1:
+                continue    # Skip any subdirectory
+            versions = sorted(directoryNames, key=lambda dir: Version(dir), reverse=True)
+            versions.remove(versions[0])
+            if len(versions) == 0:
+                continue    # Only a single version exists
+            for version in versions:
+                # Delete all left over versions
+                log.debug(f'Remove version {version} of {os.path.basename(path)}')
+
+
 class VSCUpdates(object):
 
     @staticmethod
@@ -338,7 +359,7 @@ class VSCUpdates(object):
                     for quality in vsc.QUALITIES:
                         if quality == 'insider' and not insider:
                             continue
-                        if platform == 'win32' and architecture == 'ia32':
+                        if platform == 'win32-x64' and architecture == 'ia32':
                             continue
                         if platform == 'darwin' and (architecture != '' or buildtype != ''):
                             continue
@@ -352,13 +373,49 @@ class VSCUpdates(object):
         return versions
 
     @staticmethod
+    def latest_version(insider=False):
+        versions = VSCUpdates.latest_versions(insider)
+        latestVersion = Version('0.0.0')
+        for version in versions.items():
+            productVersion = version[1].productVersion
+            if not productVersion:
+                break
+            productVersion = Version(productVersion)
+            if productVersion > latestVersion:
+                latestVersion = productVersion
+        return str(latestVersion)
+
+    @staticmethod
     def signal_updated(artifactdir):
         signalpath = os.path.join(artifactdir, 'updated.json')
         result = {
-            'updated': datetime.datetime.utcnow()
+            'updated': datetime.datetime.now(datetime.timezone.utc)
         }
         with open(signalpath, 'w') as outfile:
             json.dump(result, outfile, cls=vsc.MagicJsonEncoder, indent=4)
+
+    @staticmethod
+    def remove_old(artifactdir_installers):
+        for path, directoryNames, fileNames in os.walk(artifactdir_installers):
+            path = path.replace(artifactdir_installers, '')
+            if path == '':
+                continue    # Skip root directory
+            if str(path).count(os.path.sep) == 1:
+                continue    # Skip version directory
+            if str(path).count(os.path.sep) > 2:
+                continue    # Skip any subdirectory
+            filtered = filter(lambda file: not file.endswith('.json'), fileNames)
+            versions = sorted(filtered, key=lambda file: Version(re.findall(r'\d+\.\d+\.\d+', file)[0]), reverse=True)
+            if not versions:
+                # Versions could not be determined
+                log.debug(f'Versions of {path[path.index(os.path.sep)]} could not be determined')
+                continue
+            versions.remove(versions[0])
+            if len(versions) == 0:
+                continue    # Only a single version exists
+            for version in versions:
+                # Delete all left over versions
+                log.debug(f'Remove version {version} of {path[path.index(os.path.sep)]}')
 
 
 class VSCMarketplace(object):
@@ -405,7 +462,7 @@ class VSCMarketplace(object):
         if result.status_code != 200:
             log.warning(
                 f"get_recommendations failed accessing url {vsc.URL_RECOMMENDATIONS}, unhandled status code {result.status_code}")
-            return False
+            return {}  # Return an empty dictionary instead of False
 
         jresult = result.json()
         with open(os.path.join(destination, 'recommendations.json'), 'w') as outfile:
@@ -420,6 +477,10 @@ class VSCMarketplace(object):
         return packages
 
     def get_malicious(self, destination, extensions=None):
+        if not extensions:
+            return
+
+        # Query Microsofts list
         result = self.session.get(
             vsc.URL_MALICIOUS, allow_redirects=True, timeout=vsc.TIMEOUT)
         if result.status_code != 200:
@@ -430,18 +491,17 @@ class VSCMarketplace(object):
         stripped = result.content.decode(
             'utf-8', 'ignore').replace(u'\xa0', u'')
         jresult = json.loads(stripped)
+
+        # Output to malicious.json (used by VS Code)
         with open(os.path.join(destination, 'malicious.json'), 'w') as outfile:
             json.dump(jresult, outfile, cls=vsc.MagicJsonEncoder, indent=4)
 
-        if not extensions:
-            return
-
-        for malicious in jresult['malicious']:
-            log.debug(f'Malicious extension {malicious}')
-            if malicious in extensions.keys():
+        # Remove malicious extensions from collection
+        for extension in (extensions.copy()):
+            if extension in jresult['malicious']:
                 log.warning(
-                    f'Preventing malicious extension {malicious} from being downloaded')
-                del extensions[malicious]
+                    f'Preventing malicious extension {extension} from being downloaded')
+                del extensions[extension]
 
     def get_specified(self, specifiedpath):
         if not os.path.exists(specifiedpath):
@@ -524,6 +584,15 @@ class VSCMarketplace(object):
     def backoff_sleep(self):
         time.sleep(self.backoff)
         self.backoff *= 2
+
+    def get_existing(self, artifactdir_extensions):
+        extensions=[]
+        for extension in glob.glob(os.path.join(artifactdir_extensions, '*', 'latest.json')):
+            manifest = vsc.Utility.load_json(extension)
+            result = self.search_by_extension_id(manifest['extensionId'])
+            if result:
+                extensions.append(result)
+        return extensions
 
     def _query_marketplace(self, filtertype, filtervalue, pageNumber=0, pageSize=500, limit=0, sortOrder=vsc.SortOrder.Default, sortBy=vsc.SortBy.NoneOrRelevance, queryFlags=0):
         extensions = {}
@@ -646,46 +715,125 @@ class VSCMarketplace(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Synchronises VSCode in an Offline Environment')
-    parser.add_argument('--sync', dest='sync', action='store_true',
-                        help='The basic-user sync. It includes stable binaries and typical extensions')
-    parser.add_argument('--syncall', dest='syncall', action='store_true',
-                        help='The power-user sync. It includes all binaries and extensions ')
-    parser.add_argument('--artifacts', dest='artifactdir',
-                        default='../artifacts/', help='Path to downloaded artifacts')
-    parser.add_argument('--frequency', dest='frequency', default=None,
-                        help='The frequency to try and update (e.g. sleep for \'12h\' and try again')
+    parser.add_argument('--sync', '-s',
+                        dest='sync',
+                        action='store_true',
+                        help='The basic-user sync. It includes stable binaries and typical extensions'
+    )
+    parser.add_argument('--syncall', '-a',
+                        dest='syncall',
+                        action='store_true',
+                        help='The power-user sync. It includes all binaries and extensions'
+    )
+    parser.add_argument('--artifacts', '-d',
+                        dest='artifactdir',
+                        default='../artifacts/',
+                        help='Path to downloaded artifacts'
+    )
+    parser.add_argument('--frequency', '-f',
+                        dest='frequency',
+                        default=None,
+                        help='The frequency to try and update (e.g. sleep for \'12h\' and try again)'
+    )
 
     # Arguments to tweak behaviour
-    parser.add_argument('--check-binaries', dest='checkbinaries',
-                        action='store_true', help='Check for updated binaries')
-    parser.add_argument('--check-insider', dest='checkinsider',
-                        action='store_true', help='Check for updated insider binaries')
-    parser.add_argument('--check-recommended-extensions', dest='checkextensions',
-                        action='store_true', help='Check for recommended extensions')
-    parser.add_argument('--check-specified-extensions', dest='checkspecified',
-                        action='store_true', help='Check for extensions in <artifacts>/specified.json')
-    parser.add_argument('--extension-name', dest='extensionname',
-                        help='Find a specific extension by name')
-    parser.add_argument('--extension-search', dest='extensionsearch',
-                        help='Search for a set of extensions')
-    parser.add_argument('--prerelease-extensions', dest='prerelease',
-                        action='store_true', help='Download prerelease extensions. Defaults to false.')
-    parser.add_argument('--update-binaries', dest='updatebinaries',
-                        action='store_true', help='Download binaries')
-    parser.add_argument('--update-extensions', dest='updateextensions',
-                        action='store_true', help='Download extensions')
-    parser.add_argument('--update-malicious-extensions', dest='updatemalicious',
-                        action='store_true', help='Update the malicious extension list')
-    parser.add_argument('--skip-binaries', dest='skipbinaries',
-                        action='store_true', help='Skip downloading binaries')
-    parser.add_argument('--vscode-version', dest='version',
-                        default='1.69.2', help='VSCode version to search extensions as.')
-    parser.add_argument('--total-recommended', type=int, dest='totalrecommended', default=500,
-                        help='Total number of recommended extensions to sync from Search API. Defaults to 500')
-    parser.add_argument('--debug', dest='debug',
-                        action='store_true', help='Show debug output')
-    parser.add_argument('--logfile', dest='logfile', default=None,
-                        help='Sets a logfile to store loggging output')
+    # ToDo Implement action=argparse.BooleanOptionalAction to combine --check-binaries and --skip-binaries into a single argument
+    parser.add_argument('--check-binaries',
+                        dest='checkbinaries',
+                        action='store_true',
+                        help='Check for updated binaries'
+    )
+    parser.add_argument('--check-insider', '-i',
+                        dest='checkinsider',
+                        action='store_true',
+                        help='Check for updated insider binaries'
+    )
+    parser.add_argument('--check-recommended-extensions', '-r',
+                        dest='checkrecommended',
+                        action='store_true',
+                        help='Check for recommended extensions'
+    )
+    parser.add_argument('--check-specified-extensions', '-w',
+                        dest='checkspecified',
+                        action='store_true',
+                        help='Check for extensions in <artifacts>/specified.json'
+    )
+    # ToDo Allow for list of names (action='extend' nargs='+')
+    parser.add_argument('--extension-name', '-n',
+                        dest='extensionname',
+                        help='Find a specific extension by name'
+    )
+    # ToDo Allow for list of names (action='extend' nargs='+')
+    parser.add_argument('--extension-search',
+                        dest='extensionsearch',
+                        help='Search for a set of extensions'
+    )
+    parser.add_argument('--prerelease-extensions', '-p',
+                        dest='prerelease',
+                        action='store_true',
+                        help='Download prerelease extensions. Defaults to false.'
+    )
+    parser.add_argument('--update-binaries', '-b',
+                        dest='updatebinaries',
+                        action='store_true',
+                        help='Download binaries'
+    )
+    parser.add_argument('--update-extensions', '-u',
+                        dest='updateextensions',
+                        action='store_true',
+                        help='Download extensions'
+    )
+    parser.add_argument('--update-malicious-extensions', '-m',
+                        dest='updatemalicious',
+                        action='store_true',
+                        help='Update the malicious extension list'
+    )
+    parser.add_argument('--skip-binaries', '-B',
+                        dest='skipbinaries',
+                        action='store_true',
+                        help='Skip downloading binaries'
+    )
+    parser.add_argument('--vscode-version', '-v',
+                        dest='version',
+                        default=VSCUpdates.latest_version(),
+                        help='VSCode version to search extensions as.'
+    )
+    parser.add_argument('--total-recommended',
+                        type=int,
+                        dest='totalrecommended',
+                        default=500,
+                        help='Total number of recommended extensions to sync from Search API. Defaults to 500'
+    )
+    parser.add_argument('--debug',
+                        dest='debug',
+                        action='store_true',
+                        help='Show debug output'
+    )
+    parser.add_argument('--logfile', '-l',
+                        dest='logfile',
+                        default=None,
+                        help='Sets a logfile to store loggging output'
+    )
+    parser.add_argument('--include-existing', '-e',
+                        dest='existing',
+                        action='store_true',
+                        help='Include existing extensions in the update process'
+    )
+    parser.add_argument('--skip-existing', '-E',
+                        dest='skipExisting',
+                        action='store_true',
+                        help='Skip inclusion of existing extensions in the update process'
+    )
+    parser.add_argument('--skip-recommended', '-R',
+                        dest='skipRecommended',
+                        action='store_true',
+                        help='Skip inclusion of existing extensions in the update process'
+    )
+    parser.add_argument('--garbage-collection', '-g',
+                        dest='garbageCollection',
+                        action='store_true',
+                        help='Remove old versions of artifacts (binaries / extensions)'
+    )
     config = parser.parse_args()
 
     if config.debug:
@@ -713,13 +861,14 @@ if __name__ == '__main__':
 
     if config.sync or config.syncall:
         config.checkbinaries = True
-        config.checkextensions = True
+        config.checkrecommended = True
         config.updatebinaries = True
         config.updateextensions = True
         config.updatemalicious = True
         config.checkspecified = True
         if not config.frequency:
             config.frequency = '12h'
+        config.existing = True
 
     if config.syncall:
         config.extensionsearch = '*'
@@ -732,6 +881,9 @@ if __name__ == '__main__':
 
     if config.updatebinaries and not config.checkbinaries:
         config.checkbinaries = True
+
+    if config.existing:
+        config.updateextensions = True
 
     if config.frequency:
         config.frequency = timeparse(config.frequency)
@@ -749,7 +901,7 @@ if __name__ == '__main__':
                             config.prerelease, config.version, session)
 
         if config.checkbinaries and not config.skipbinaries:
-            log.info('Syncing VS Code Update Versions')
+            log.info('Syncing VS Code Update Binaries')
             versions = VSCUpdates.latest_versions(config.checkinsider)
 
         if config.updatebinaries and not config.skipbinaries:
@@ -763,6 +915,19 @@ if __name__ == '__main__':
                     if result:
                         versions[idkey].save_state(
                             config.artifactdir_installers)
+
+        if config.garbageCollection:
+            log.info('Removing old VS Code Binaries')
+            VSCUpdates.remove_old(config.artifactdir_installers)
+            log.info('Removing old VS Code Extensions')
+            VSCExtension.remove_old(config.artifactdir_extensions)
+
+        if config.existing and not config.skipExisting:
+            log.info('Get existing extensions from artifact directory')
+            existing = mp.get_existing(config.artifactdir_extensions)
+            if existing:
+                for item in existing:
+                    extensions[item.identity] = item
 
         if config.checkspecified:
             log.info('Syncing VS Code Specified Extensions')
@@ -790,7 +955,7 @@ if __name__ == '__main__':
             if result:
                 extensions[result.identity] = result
 
-        if config.checkextensions:
+        if config.checkrecommended and not config.skipRecommended:
             log.info('Syncing VS Code Recommended Extensions')
             recommended = mp.get_recommendations(os.path.abspath(
                 config.artifactdir), config.totalrecommended)
@@ -825,7 +990,7 @@ if __name__ == '__main__':
                 bonusextension.save_state(config.artifactdir_extensions)
 
         # Check if we did anything
-        if config.checkbinaries or config.checkextensions or config.updatebinaries or config.updateextensions or config.updatemalicious or config.checkspecified or config.checkinsider:
+        if config.checkbinaries or config.checkrecommended or config.updatebinaries or config.updateextensions or config.updatemalicious or config.checkspecified or config.checkinsider:
             log.info('Complete')
             VSCUpdates.signal_updated(os.path.abspath(config.artifactdir))
 

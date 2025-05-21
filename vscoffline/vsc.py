@@ -7,15 +7,15 @@ from enum import IntFlag
 from typing import Any, Dict, List, Union
 import logging as log
 
-PLATFORMS = ["win32", "linux", "linux-deb", "linux-rpm", "darwin", "linux-snap", "server-linux", "server-linux-legacy", "cli-alpine"]
-ARCHITECTURES = ["", "x64"]
-BUILDTYPES = ["", "archive", "user"]
+PLATFORMS = ["win32-x64", "linux", "linux-deb", "linux-rpm", "darwin", "darwin-arm64", "darwin-universal", "linux-snap", "server-linux", "server-linux-legacy", "cli-alpine"]
+ARCHITECTURES = ["", "x64", "arm64", "armhf", "alpine"]
+BUILDTYPES = ["", "archive", "user", "web"]
 QUALITIES = ["stable", "insider"]
 
 URL_BINUPDATES = r"https://update.code.visualstudio.com/api/update/"
-URL_RECOMMENDATIONS = r"https://az764295.vo.msecnd.net/extensions/workspaceRecommendations.json.gz"
+URL_RECOMMENDATIONS = r"https://main.vscode-cdn.net/extensions/marketplace.json"
 URL_MARKETPLACEQUERY = r"https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery"
-URL_MALICIOUS = r"https://az764295.vo.msecnd.net/extensions/marketplace.json"
+URL_MALICIOUS = r"https://main.vscode-cdn.net/extensions/marketplace.json"
 
 URLROOT = "https://update.code.visualstudio.com"
 ARTIFACTS = "/artifacts/"
