@@ -119,6 +119,11 @@ class VSCUpdateDefinition(object):
         if os.path.exists(destfile) and vsc.Utility.hash_file_and_check(destfile, self.sha256hash):
             log.debug(f'Previously downloaded {self}')
         else:
+            # Some old releases (e.g. stable/win32 - Version: 1.83.1) still reference the old CDN and fail the download,
+            # so these are skipped.
+            if self.updateurl.startswith("https://az764295.vo.msecnd.net"):
+                log.info(f"Skipping old version, no longer available {self}")
+                return False
             log.info(f'Downloading {self} to {destfile}')
             result = requests.get(
                 self.updateurl, allow_redirects=True, timeout=vsc.TIMEOUT)
@@ -338,7 +343,7 @@ class VSCUpdates(object):
                     for quality in vsc.QUALITIES:
                         if quality == 'insider' and not insider:
                             continue
-                        if platform == 'win32-x64' and architecture == 'ia32':
+                        if platform == 'win32' and architecture == 'ia32':
                             continue
                         if platform == 'darwin' and (architecture != '' or buildtype != ''):
                             continue
@@ -372,20 +377,20 @@ class VSCMarketplace(object):
 
     def get_recommendations(self, destination, totalrecommended):
         recommendations = self.search_top_n(totalrecommended)
-        recommended_old = self.get_recommendations_old(destination)
+        # recommended_old = self.get_recommendations_old(destination)
 
-        for extension in recommendations:
-            # If the extension has already been found then prevent it from being collected again when processing the old recommendation list
-            if extension.identity in recommended_old.keys():
-                del recommended_old[extension.identity]
+        # for extension in recommendations:
+        #     # If the extension has already been found then prevent it from being collected again when processing the old recommendation list
+        #     if extension.identity in recommended_old.keys():
+        #         del recommended_old[extension.identity]
 
-        for packagename in recommended_old:
-            extension = self.search_by_extension_name(packagename)
-            if extension:
-                recommendations.append(extension)
-            else:
-                log.debug(
-                    f'get_recommendations failed finding a recommended extension by name for {packagename}. This extension has likely been removed.')
+        # for packagename in recommended_old:
+        #     extension = self.search_by_extension_name(packagename)
+        #     if extension:
+        #         recommendations.append(extension)
+        #     else:
+        #         log.debug(
+        #             f'get_recommendations failed finding a recommended extension by name for {packagename}. This extension has likely been removed.')
 
         prereleasecount = 0
         for recommendation in recommendations:
@@ -839,4 +844,3 @@ if __name__ == '__main__':
         else:
             log.info('Nothing to do')
             break
-
