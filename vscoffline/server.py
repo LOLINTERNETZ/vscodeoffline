@@ -396,16 +396,16 @@ class ArtifactChangedHandler(FileSystemEventHandler):
 
 
 if not os.path.exists(vsc.ARTIFACTS):
-    log.warning(f'Artifact directory missing {vsc.ARTIFACTS}. Cannot proceed.')
-    sys.exit(-1)
+    log.warning(f'Artifact directory missing {vsc.ARTIFACTS}. Creating it.')
+    os.makedirs(vsc.ARTIFACTS, exist_ok=True)
 
 if not os.path.exists(vsc.ARTIFACTS_INSTALLERS):
-    log.warning(f'Installer artifact directory missing {vsc.ARTIFACTS_INSTALLERS}. Cannot proceed.')
-    sys.exit(-1)
+    log.warning(f'Installer artifact directory missing {vsc.ARTIFACTS_INSTALLERS}. Creating it.')
+    os.makedirs(vsc.ARTIFACTS_INSTALLERS, exist_ok=True)
 
 if not os.path.exists(vsc.ARTIFACTS_EXTENSIONS):
-    log.warning(f'Extensions artifact directory missing {vsc.ARTIFACTS_EXTENSIONS}. Cannot proceed.')
-    sys.exit(-1)
+    log.warning(f'Extensions artifact directory missing {vsc.ARTIFACTS_EXTENSIONS}. Creating it.')
+    os.makedirs(vsc.ARTIFACTS_EXTENSIONS, exist_ok=True)
 
 vscgallery = VSCGallery()
 
